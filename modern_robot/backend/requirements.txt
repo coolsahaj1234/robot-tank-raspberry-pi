@@ -1,0 +1,15 @@
+fastapi
+uvicorn
+python-socketio
+aiohttp
+opencv-python-headless
+numpy
+pydantic
+gpiozero
+rpi-ws281x
+Adafruit-Blinka
+adafruit-circuitpython-pca9685
+adafruit-circuitpython-motor
+websockets
+jinja2
+
