@@ -6,6 +6,7 @@ from app.services.ai_service import AIService
 from app.core.hardware.motors import MotorController
 from app.core.hardware.servos import ServoController
 from app.core.hardware.camera import CameraManager
+from app.core.hardware.ultrasonic import UltrasonicSystem
 
 class AutonomyLevel(str, Enum):
     MANUAL = "manual"
@@ -27,6 +28,7 @@ class Robot:
         self.motors = MotorController()
         self.servos = ServoController()
         self.camera_manager = CameraManager()
+        self.ultrasonic = UltrasonicSystem()
         self.ai_service = AIService()
         self.emit_status_callback = None
         
@@ -41,9 +43,8 @@ class Robot:
         self.camera_manager.start()
         await self.ai_service.start()
         
-        # Start sensor loops, AI processing loops etc.
-        if settings.MOCK_MODE:
-             asyncio.create_task(self._mock_sensor_loop())
+        # Start sensor loops
+        asyncio.create_task(self._sensor_loop())
 
     async def stop(self):
         self.is_running = False
@@ -51,6 +52,7 @@ class Robot:
         self.camera_manager.stop()
         self.motors.stop()
         self.servos.stop()
+        self.ultrasonic.close()
         print("Robot systems stopped.")
 
     def get_state(self) -> Dict[str, Any]:
@@ -89,6 +91,30 @@ class Robot:
         x = params.get('x', 0)
         y = params.get('y', 0)
         
+        # Situational Awareness / Collision Avoidance
+        # Only intervene if moving significantly (abs > 0.1)
+        if self.state["autonomy_level"] in [AutonomyLevel.SEMI_AUTO, AutonomyLevel.FULL_AUTO]:
+            distances = self.state["sensors"].get("ultrasonic", {})
+            front_dist = distances.get("front")
+            rear_dist = distances.get("rear")
+            
+            # Stop if too close (< 15cm)
+            if y > 0 and front_dist is not None and front_dist < 15:
+                print(f"Safety Stop: Obstacle in front ({front_dist}cm)")
+                self.motors.stop()
+                self.state["status"] = "blocked front"
+                if self.emit_status_callback:
+                    await self.emit_status_callback(self.state)
+                return
+
+            if y < 0 and rear_dist is not None and rear_dist < 15:
+                print(f"Safety Stop: Obstacle behind ({rear_dist}cm)")
+                self.motors.stop()
+                self.state["status"] = "blocked rear"
+                if self.emit_status_callback:
+                    await self.emit_status_callback(self.state)
+                return
+
         if x == 0 and y == 0:
              self.state["status"] = "standby"
              self.motors.stop()
@@ -137,17 +163,19 @@ class Robot:
         if self.emit_status_callback:
             await self.emit_status_callback(self.state)
         
-    async def _mock_sensor_loop(self):
-        """Updates mock sensor data periodically"""
+    async def _sensor_loop(self):
+        """Updates sensor data periodically"""
         while self.is_running:
-            import random
-            self.state["sensors"]["ultrasonic"] = random.uniform(10, 200)
-            self.state["battery"] = max(0, self.state["battery"] - 0.01)
+            # Update Ultrasonic
+            self.state["sensors"]["ultrasonic"] = self.ultrasonic.get_distances()
+            
+            # Simulate battery drain or read from ADC if implemented
+            self.state["battery"] = max(0, self.state["battery"] - 0.001)
             
             if self.emit_status_callback:
                 await self.emit_status_callback(self.state)
                 
-            await asyncio.sleep(1)
+            await asyncio.sleep(0.5) # Update rate 2Hz
 
 # Global Robot Instance
 robot = Robot()

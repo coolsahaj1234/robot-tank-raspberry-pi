@@ -103,10 +103,26 @@ const Dashboard: React.FC<DashboardProps> = ({ socket, robotState, robotIp }) =>
                 <div className="text-gray-400 text-sm mb-1">Battery</div>
                 <div className="text-2xl font-bold text-green-400">{robotState?.battery?.toFixed(1) || 100}%</div>
             </div>
-            <div className="bg-gray-800/50 rounded-xl p-3">
-                <div className="text-gray-400 text-sm mb-1">Ultrasonic</div>
-                <div className="text-2xl font-bold text-blue-400">{robotState?.sensors?.ultrasonic?.toFixed(1) || '--'} cm</div>
+            
+            <div className="bg-gray-800/50 rounded-xl p-3 flex flex-col justify-center">
+                <div className="flex justify-between items-center mb-2">
+                    <span className="text-gray-400 text-xs">FRONT SONAR</span>
+                    <span className="text-lg font-bold text-blue-400">
+                        {robotState?.sensors?.ultrasonic?.front !== undefined 
+                            ? robotState.sensors.ultrasonic.front + ' cm' 
+                            : '--'}
+                    </span>
+                </div>
+                <div className="flex justify-between items-center">
+                    <span className="text-gray-400 text-xs">REAR SONAR</span>
+                    <span className="text-lg font-bold text-yellow-400">
+                         {robotState?.sensors?.ultrasonic?.rear !== undefined 
+                            ? robotState.sensors.ultrasonic.rear + ' cm' 
+                            : '--'}
+                    </span>
+                </div>
             </div>
+
              <div className="bg-gray-800/50 rounded-xl p-3">
                 <div className="text-gray-400 text-sm mb-1">Status</div>
                 <div className="text-xl font-bold text-white capitalize">{robotState?.status || 'Offline'}</div>
