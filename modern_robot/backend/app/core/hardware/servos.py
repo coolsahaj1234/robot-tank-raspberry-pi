@@ -19,12 +19,16 @@ class ServoController:
         # Channel 1 -> GPIO 13 (Claw)
         # Channel 3 -> GPIO 19 (Rear Cam)
         try:
+            print("  - Initializing PWM Channel 0 (GPIO 12)...")
             self.pwm0 = HardwarePWM(pwm_channel=0, hz=50, chip=0) # GPIO 12
-            self.pwm1 = HardwarePWM(pwm_channel=1, hz=50, chip=0) # GPIO 13
-            self.pwm3 = HardwarePWM(pwm_channel=3, hz=50, chip=0) # GPIO 19
-            
             self.pwm0.start(0)
+            
+            print("  - Initializing PWM Channel 1 (GPIO 13)...")
+            self.pwm1 = HardwarePWM(pwm_channel=1, hz=50, chip=0) # GPIO 13
             self.pwm1.start(0)
+            
+            print("  - Initializing PWM Channel 3 (GPIO 19)...")
+            self.pwm3 = HardwarePWM(pwm_channel=3, hz=50, chip=0) # GPIO 19
             self.pwm3.start(0)
             
             self.servos = {
@@ -37,12 +41,16 @@ class ServoController:
             # Channel 0 (Lift): 90
             # Channel 1 (Claw): 140
             # Channel 2/3 (Rear): 90
+            print("  - Setting initial servo angles...")
             self.set_angle("arm_lift", 90)
             self.set_angle("claw", 140)
             self.set_angle("rear_cam", 90)
+            print("  - Servos initialized successfully.")
             
         except Exception as e:
-            print(f"Failed to initialize HardwarePWM: {e}")
+            print(f"CRITICAL ERROR: Failed to initialize HardwarePWM: {e}")
+            print("Falling back to MOCK mode for Servos to allow server startup.")
+            self.servos = {} # Empty dict enables mock behavior in set_angle
 
     def _map(self, x, in_min, in_max, out_min, out_max):
         return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
