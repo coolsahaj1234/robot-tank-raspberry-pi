@@ -6,10 +6,11 @@ class Settings:
     API_V1_STR: str = "/api/v1"
     
     # detect if running on Raspberry Pi (simple check for now)
-    IS_RASPBERRY_PI: bool = os.uname().machine.startswith('arm') if hasattr(os, 'uname') else False
-    
-    # Force mock mode if not on Pi or explicitly set
-    MOCK_MODE: bool = os.getenv("MOCK_MODE", "True").lower() == "true" or not IS_RASPBERRY_PI
+    IS_RASPBERRY_PI: bool = (os.uname().machine.startswith('arm') or os.uname().machine.startswith('aarch')) if hasattr(os, 'uname') else False
+
+    # Mock mode: defaults to True if NOT on Pi, or can be explicitly set via MOCK_MODE env var
+    # On Pi, defaults to False (real hardware) unless MOCK_MODE=true is set
+    MOCK_MODE: bool = os.getenv("MOCK_MODE", str(not IS_RASPBERRY_PI)).lower() == "true"
 
 settings = Settings()
 
