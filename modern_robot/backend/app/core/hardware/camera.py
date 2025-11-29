@@ -100,3 +100,4 @@ class CameraManager:
                 return self.rear_cam.frame.copy() if self.rear_cam.frame is not None else None
 
 
+

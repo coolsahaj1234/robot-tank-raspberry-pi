@@ -88,8 +88,16 @@ class Robot:
         # x, y usually from joystick (-1 to 1)
         x = params.get('x', 0)
         y = params.get('y', 0)
-        # print(f"Moving robot: x={x}, y={y}")
-        self.motors.move(x, y)
+        
+        if x == 0 and y == 0:
+             self.state["status"] = "standby"
+             self.motors.stop()
+        else:
+             self.state["status"] = "moving"
+             self.motors.move(x, y)
+             
+        if self.emit_status_callback:
+            await self.emit_status_callback(self.state)
 
     async def _handle_camera_pan(self, params):
         # Controls the rear camera servo (Servo 2 / GPIO 19)
@@ -103,6 +111,10 @@ class Robot:
         joint = params.get('joint') # 'lift' or 'claw'
         value = params.get('value') # 0-180
         
+        self.state["status"] = "operating arm"
+        if self.emit_status_callback:
+            await self.emit_status_callback(self.state)
+        
         servo_map = {
             'lift': 'arm_lift',
             'claw': 'claw'
@@ -111,10 +123,19 @@ class Robot:
         if joint in servo_map:
             print(f"Moving arm {joint} to {value}")
             self.servos.set_angle(servo_map[joint], value)
+            
+        # Reset to standby after a short delay (simulating action completion)
+        await asyncio.sleep(0.5)
+        self.state["status"] = "standby"
+        if self.emit_status_callback:
+            await self.emit_status_callback(self.state)
 
     async def _stop_movement(self):
         print("Stopping all movement")
         self.motors.stop()
+        self.state["status"] = "standby"
+        if self.emit_status_callback:
+            await self.emit_status_callback(self.state)
         
     async def _mock_sensor_loop(self):
         """Updates mock sensor data periodically"""
