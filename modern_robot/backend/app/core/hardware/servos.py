@@ -1,69 +1,82 @@
 from app.core.config import settings
 try:
-    from gpiozero import AngularServo
-    from gpiozero.pins.lgpio import LGPIOFactory
+    from rpi_hardware_pwm import HardwarePWM
 except ImportError:
-    AngularServo = None
-    LGPIOFactory = None
+    HardwarePWM = None
 
 class ServoController:
     def __init__(self):
         self.servos = {}
         
-        if settings.MOCK_MODE or AngularServo is None:
-            print("ServoController started in MOCK mode")
+        if settings.MOCK_MODE or HardwarePWM is None:
+            print("ServoController started in MOCK mode (or HardwarePWM missing)")
             return
 
-        # Attempt to use LGPIO factory for Pi 5 compatibility
+        print("Initializing HardwareServo (Freenove PCB v2 Protocol)")
+        
+        # Initialize HardwarePWM instances (Chip 0)
+        # Channel 0 -> GPIO 12 (Arm Lift)
+        # Channel 1 -> GPIO 13 (Claw)
+        # Channel 3 -> GPIO 19 (Rear Cam)
         try:
-            factory = LGPIOFactory()
-        except Exception:
-            factory = None
-            print("LGPIO Factory not available, using default")
+            self.pwm0 = HardwarePWM(pwm_channel=0, hz=50, chip=0) # GPIO 12
+            self.pwm1 = HardwarePWM(pwm_channel=1, hz=50, chip=0) # GPIO 13
+            self.pwm3 = HardwarePWM(pwm_channel=3, hz=50, chip=0) # GPIO 19
+            
+            self.pwm0.start(0)
+            self.pwm1.start(0)
+            self.pwm3.start(0)
+            
+            self.servos = {
+                "arm_lift": self.pwm0,
+                "claw": self.pwm1,
+                "rear_cam": self.pwm3
+            }
+            
+            # Set Initial Positions exactly like Server/servo.py
+            # Channel 0 (Lift): 90
+            # Channel 1 (Claw): 140
+            # Channel 2/3 (Rear): 90
+            self.set_angle("arm_lift", 90)
+            self.set_angle("claw", 140)
+            self.set_angle("rear_cam", 90)
+            
+        except Exception as e:
+            print(f"Failed to initialize HardwarePWM: {e}")
 
-        # Configuration for servos
-        # 0: Arm Up/Down (GPIO 12)
-        # 1: Claw (GPIO 13)
-        # 2: Rear Camera (GPIO 19)
-        self.servo_config = {
-            "arm_lift": 12,
-            "claw": 13,
-            "rear_cam": 19
-        }
-
-        for name, pin in self.servo_config.items():
-            try:
-                # min_pulse and max_pulse might need tuning for specific servos
-                self.servos[name] = AngularServo(
-                    pin, 
-                    min_angle=0, 
-                    max_angle=180,
-                    min_pulse_width=0.0005,
-                    max_pulse_width=0.0025,
-                    pin_factory=factory
-                )
-            except Exception as e:
-                print(f"Failed to initialize servo {name} on pin {pin}: {e}")
+    def _map(self, x, in_min, in_max, out_min, out_max):
+        return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
 
     def set_angle(self, name: str, angle: float):
         """
-        Set servo angle (0-180)
+        Set servo angle (0-180) using HardwarePWM duty cycle mapping.
+        Mapping matches Freenove Server/servo.py: 0-180 -> 2.5-12.5% duty
         """
-        if settings.MOCK_MODE:
-            print(f"MOCK SERVO: {name} -> {angle}")
+        if settings.MOCK_MODE or name not in self.servos:
+            if settings.MOCK_MODE:
+                print(f"MOCK SERVO: {name} -> {angle}")
             return
 
-        if name in self.servos:
-            try:
-                # Clamp angle
-                angle = max(0, min(180, angle))
-                self.servos[name].angle = angle
-            except Exception as e:
-                print(f"Error setting servo {name}: {e}")
-        else:
-            print(f"Servo {name} not found")
+        # Constrain angles based on logic in Server/servo.py
+        if name == "arm_lift": # Channel 0
+            angle = max(90, min(150, angle))
+        elif name == "claw": # Channel 1
+            angle = max(90, min(150, angle))
+        elif name == "rear_cam": # Channel 2/3
+            angle = max(0, min(180, angle))
+            
+        try:
+            duty = self._map(angle, 0, 180, 2.5, 12.5)
+            self.servos[name].change_duty_cycle(duty)
+        except Exception as e:
+            print(f"Error setting servo {name}: {e}")
 
     def stop(self):
+        if settings.MOCK_MODE:
+            return
+            
         for servo in self.servos.values():
-            servo.detach()
-
+            try:
+                servo.stop()
+            except:
+                pass
