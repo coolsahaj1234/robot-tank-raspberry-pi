@@ -64,17 +64,49 @@ def test_Motor():
         print("\nEnd of program")            # Print an end message
 
 def test_Ultrasonic():
-    from ultrasonic import Ultrasonic                              # Import the Ultrasonic class from the ultrasonic module
-    import time                                                    # Import the time module for sleep functionality
-    print('Program is starting ... ')                              # Print a start message
-    ultrasonic = Ultrasonic()                                      # Initialize the Ultrasonic instance
+    from ultrasonic import Ultrasonic  # Import the Ultrasonic class from the ultrasonic module
+    import time                        # Import the time module for sleep functionality
+    import threading                   # Import threading for concurrent sensor reading
+
+    print('Program is starting ... ')  # Print a start message
+    print('Testing both ultrasonic sensors simultaneously')
+
+    # Initialize both ultrasonic sensors
+    ultrasonic1 = Ultrasonic(sensor_id=1)  # Sensor 1: trigger=27, echo=22
+    ultrasonic2 = Ultrasonic(sensor_id=2)  # Sensor 2: trigger=25, echo=18
+
+    # Flag to control the threads
+    running = True
+
+    def read_sensor(sensor, sensor_name):
+        """Read distance from a sensor continuously"""
+        try:
+            while running:
+                distance = sensor.get_distance()                    # Get the distance to the obstacle
+                print(f"{sensor_name} distance: {distance} CM")     # Print the distance with sensor name
+                time.sleep(0.3)                                     # Wait for 0.3 seconds
+        except Exception as e:
+            print(f"{sensor_name} error: {e}")
+
     try:
-        while True:
-            distance = ultrasonic.get_distance()                   # Get the distance to the obstacle
-            print("Obstacle distance is " + str(distance) + "CM")  # Print the distance
-            time.sleep(0.3)                                        # Wait for 0.3 seconds
-    except KeyboardInterrupt:                                      # Handle keyboard interrupt (Ctrl+C)
-        print("\nEnd of program")                                  # Print an end message
+        # Create threads for both sensors
+        thread1 = threading.Thread(target=read_sensor, args=(ultrasonic1, "Sensor 1 (GPIO27/22)"))
+        thread2 = threading.Thread(target=read_sensor, args=(ultrasonic2, "Sensor 2 (GPIO25/18)"))
+
+        # Start both threads
+        thread1.start()
+        thread2.start()
+
+        # Wait for threads to finish (they run until KeyboardInterrupt)
+        thread1.join()
+        thread2.join()
+
+    except KeyboardInterrupt:                                       # Handle keyboard interrupt (Ctrl+C)
+        running = False                                             # Stop the threads
+        time.sleep(0.5)                                             # Give threads time to finish
+        ultrasonic1.close()                                         # Close sensor 1
+        ultrasonic2.close()                                         # Close sensor 2
+        print("\nEnd of program")                                   # Print an end message
 
 def test_Infrared():
     from infrared import Infrared      # Import the Infrared class from the infrared module
