@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, Save } from 'lucide-react';
-import { updateSocketConnection, getRobotIp } from '../lib/socket';
+import { updateSocketConnection, getRobotIp, getRobotPort } from '../lib/socket';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -10,11 +10,12 @@ interface SettingsModalProps {
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onUpdate }) => {
   const [ip, setIp] = useState(getRobotIp());
+  const [port, setPort] = useState(getRobotPort());
 
   if (!isOpen) return null;
 
   const handleSave = () => {
-    updateSocketConnection(ip);
+    updateSocketConnection(ip, port);
     onUpdate(ip);
     onClose();
   };
@@ -39,8 +40,19 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onUpdate
               placeholder="e.g., 192.168.1.100"
               className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-robot-accent"
             />
-            <p className="text-xs text-gray-500 mt-2">
-              The backend server runs on port 8000 by default.
+          </div>
+
+          <div>
+            <label className="block text-sm text-gray-400 mb-2">Robot Port</label>
+            <input
+              type="text"
+              value={port}
+              onChange={(e) => setPort(e.target.value)}
+              placeholder="e.g., 8000"
+              className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-robot-accent"
+            />
+             <p className="text-xs text-gray-500 mt-2">
+              Default is 8000.
             </p>
           </div>
 

@@ -32,8 +32,8 @@ class ServoController:
             self.pwm3.start(0)
             
             self.servos = {
-                "arm_lift": self.pwm0,
-                "claw": self.pwm1,
+                "arm_lift": self.pwm1,
+                "claw": self.pwm0,
                 "rear_cam": self.pwm3
             }
             
@@ -42,8 +42,8 @@ class ServoController:
             # Channel 1 (Claw): 140
             # Channel 2/3 (Rear): 90
             print("  - Setting initial servo angles...")
-            self.set_angle("arm_lift", 90)
-            self.set_angle("claw", 140)
+            self.set_angle("arm_lift", 140)
+            self.set_angle("claw", 90)
             self.set_angle("rear_cam", 90)
             print("  - Servos initialized successfully.")
             
