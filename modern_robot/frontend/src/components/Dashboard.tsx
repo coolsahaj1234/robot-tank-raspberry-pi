@@ -123,7 +123,9 @@ const Dashboard: React.FC<DashboardProps> = ({ socket, robotState, robotIp }) =>
   };
 
   const getVideoUrl = (cam: string) => {
-      return `http://${robotIp}:8000/api/video/${cam}`;
+      // Get port from local storage or default to 8000
+      const port = localStorage.getItem('robot_port') || '8000';
+      return `http://${robotIp}:${port}/api/video/${cam}`;
   };
 
   return (
