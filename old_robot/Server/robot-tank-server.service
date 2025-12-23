@@ -1,0 +1,22 @@
+[Unit]
+Description=Robot Tank Headless Server
+After=network.target pigpiod.service
+Wants=pigpiod.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/home/pi5/Server
+ExecStartPre=/bin/bash -c 'if ! pgrep -f pigpiod > /dev/null; then /usr/local/bin/pigpiod || true; sleep 1; fi'
+ExecStart=/bin/bash /home/pi5/Server/start_robot_server.sh
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+# Environment variables
+Environment="PYTHONUNBUFFERED=1"
+
+[Install]
+WantedBy=multi-user.target
+
