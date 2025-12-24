@@ -1,0 +1,41 @@
+import React, { useState } from 'react'
+import './ModeSelector.css'
+
+const MODES = [
+  { value: '0', label: 'Stop' },
+  { value: '1', label: 'Move' },
+  { value: '2', label: 'Sonar' },
+  { value: '3', label: 'Infrared' },
+  { value: '4', label: 'AI Auto' }
+]
+
+export default function ModeSelector({ connected, onSendCommand, onModeChange }) {
+  const [selectedMode, setSelectedMode] = useState('0')
+  
+  const handleModeChange = (mode) => {
+    setSelectedMode(mode)
+    onSendCommand(`CMD_MODE#${mode}`)
+    if (onModeChange) {
+      onModeChange(mode)
+    }
+  }
+
+  return (
+    <div className="mode-selector-bottom">
+      <div className="mode-label">Robot Mode:</div>
+      <div className="mode-buttons">
+        {MODES.map(mode => (
+          <button
+            key={mode.value}
+            className={`mode-btn ${selectedMode === mode.value ? 'active' : ''}`}
+            onClick={() => handleModeChange(mode.value)}
+            disabled={!connected}
+          >
+            {mode.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
