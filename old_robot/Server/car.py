@@ -10,7 +10,8 @@ class Car:
     def __init__(self):
         # Initialize all components to None
         self.servo = None
-        self.sonic = None
+        self.sonic = None  # Front ultrasonic sensor
+        self.sonic_back = None  # Back ultrasonic sensor
         self.motor = None
         self.infrared = None
         # Call the start method to initialize components
@@ -23,9 +24,10 @@ class Car:
         # Initialize servo if not already initialized
         if self.servo is None:
             self.servo = Servo()
-        # Initialize ultrasonic sensor if not already initialized
+        # Initialize ultrasonic sensors (front and back) if not already initialized
         if self.sonic is None:
-            self.sonic = Ultrasonic()
+            self.sonic = Ultrasonic(sensor_id=1)  # Front sensor (GPIO 27/22)
+            self.sonic_back = Ultrasonic(sensor_id=2)  # Back sensor (GPIO 25/18)
         # Initialize motor if not already initialized
         if self.motor is None:
             self.motor = tankMotor()
@@ -38,8 +40,11 @@ class Car:
         self.clamp_mode = 0
         # Stop servo
         self.servo.setServoStop()
-        # Close ultrasonic sensor
-        self.sonic.close()
+        # Close ultrasonic sensors
+        if self.sonic:
+            self.sonic.close()
+        if self.sonic_back:
+            self.sonic_back.close()
         # Close motor
         self.motor.close()
         # Close infrared sensor
@@ -47,6 +52,7 @@ class Car:
         # Set all components to None
         self.servo = None
         self.sonic = None
+        self.sonic_back = None
         self.motor = None
         self.infrared = None
 

@@ -1,0 +1,109 @@
+.radar-container {
+  background: linear-gradient(135deg, #0a1628 0%, #162d50 100%);
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border: 1px solid rgba(0, 255, 128, 0.2);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3),
+              inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.radar-header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  padding: 0 4px;
+}
+
+.radar-title {
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  color: #00ff80;
+  letter-spacing: 2px;
+  text-shadow: 0 0 10px rgba(0, 255, 128, 0.5);
+}
+
+.nav-state {
+  font-family: 'Courier New', monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.radar-canvas {
+  border-radius: 50%;
+  box-shadow: 0 0 20px rgba(0, 255, 128, 0.2),
+              inset 0 0 30px rgba(0, 0, 0, 0.5);
+}
+
+.radar-stats {
+  width: 100%;
+  display: flex;
+  justify-content: space-around;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(0, 255, 128, 0.2);
+}
+
+.stat-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.stat-label {
+  font-family: 'Courier New', monospace;
+  font-size: 9px;
+  color: #4488aa;
+  letter-spacing: 1px;
+}
+
+.stat-value {
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  font-weight: 700;
+  color: #00ff80;
+  text-shadow: 0 0 5px rgba(0, 255, 128, 0.5);
+}
+
+/* Danger zone animations */
+.radar-container.danger {
+  border-color: rgba(255, 68, 68, 0.5);
+  animation: dangerPulse 0.5s ease-in-out infinite;
+}
+
+.radar-container.caution {
+  border-color: rgba(255, 170, 0, 0.3);
+}
+
+@keyframes dangerPulse {
+  0%, 100% {
+    box-shadow: 0 4px 20px rgba(255, 68, 68, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+  50% {
+    box-shadow: 0 4px 30px rgba(255, 68, 68, 0.5),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+}
+
+/* Responsive */
+@media (max-width: 1400px) {
+  .radar-container {
+    padding: 8px;
+  }
+
+  .radar-canvas {
+    width: 160px;
+    height: 160px;
+  }
+}

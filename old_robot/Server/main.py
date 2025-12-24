@@ -68,11 +68,24 @@ class mywindow(QMainWindow, Ui_server_ui):
         if self.label.text() == "Server Off":
             self.label.setText("Server On")            # Change the label text to "Server On"
             self.Button_Server.setText("Off")          # Change the button text to "Off"
+            
+            # Initialize servos to starting positions
+            print("Resetting servos to starting positions...")
+            self.car.servo.setServoAngle('0', 90)       # Servo 0 to 90 degrees
+            self.car.servo.setServoAngle('1', 140)      # Servo 1 to 140 degrees
+            time.sleep(0.5)                            # Give servos time to move to position
+            print("Servos reset to starting positions (Servo 0: 90°, Servo 1: 140°)")
+            
             self.tcp_server.startTcpServer()           # Start the TCP server
             self.set_threading_cmd_receive(True)       # Start the command receive thread
             self.set_threading_video_send(True)        # Start the video send thread
             self.set_threading_car_task(True)          # Start the car task thread
             self.set_process_led_running(True)         # Start the LED process
+            
+            # Start LED breathing mode (blue color: 0, 0, 255)
+            print("Starting LED breathing mode (blue)...")
+            self.queue_led.put("CMD_LED#4#0#0#255#0")
+            time.sleep(0.2)                            # Give LED process time to start
         elif self.label.text() == 'Server On':
             self.label.setText("Server Off")           # Change the label text to "Server Off"
             self.Button_Server.setText("On")           # Change the button text to "On"
@@ -178,18 +191,20 @@ class mywindow(QMainWindow, Ui_server_ui):
     def threading_car_task(self):
         while self.car_thread_is_running:
             if self.car_mode == 1:
-                distance = self.car.sonic.get_distance()
+                distance_front = self.car.sonic.get_distance()
+                distance_back = self.car.sonic_back.get_distance()
                 if self.tcp_server.get_cmd_server_busy() == False:
                     self.tcp_server.set_cmd_server_busy(True)
-                    self.tcp_server.sendDataToCmdClinet("CMD_SONIC#{:.2f}".format(distance))
+                    self.tcp_server.sendDataToCmdClinet("CMD_SONIC#{:.2f}#{:.2f}".format(distance_front, distance_back))
                     self.tcp_server.set_cmd_server_busy(False)
-                time.sleep(1)                                                     # Sleep for 0.1 seconds if the car mode is 1
+                time.sleep(1)                                                     # Sleep for 1 second if the car mode is 1
             elif self.car_mode == 2:
                 self.car.mode_ultrasonic()                                        # Set the car mode to ultrasonic
-                distance = self.car.sonic.get_distance()
+                distance_front = self.car.sonic.get_distance()
+                distance_back = self.car.sonic_back.get_distance()
                 if self.tcp_server.get_cmd_server_busy() == False:
                     self.tcp_server.set_cmd_server_busy(True)
-                    self.tcp_server.sendDataToCmdClinet("CMD_SONIC#{:.2f}".format(distance))
+                    self.tcp_server.sendDataToCmdClinet("CMD_SONIC#{:.2f}#{:.2f}".format(distance_front, distance_back))
                     self.tcp_server.set_cmd_server_busy(False)
             elif self.car_mode == 3:
                 self.car.mode_infrared()                                          # Set the car mode to infrared
@@ -274,7 +289,10 @@ class mywindow(QMainWindow, Ui_server_ui):
                         print(f"Error terminating LED process: {e}")  # Print the error message
 
     def process_led_running(self, queue_led):                      # Method that runs in the LED control process
-        led_parameters = [0, 100, 0, 0, 15]                        # Initialize default LED parameters
+        # Default to breathing mode with blue color (0, 0, 255)
+        # Format: [mode, R, G, B, index]
+        # Mode 4 = breathing effect
+        led_parameters = [4, 0, 0, 255, 0]                        # Initialize default LED parameters (breathing mode, blue)
         try:
             while self.led_process_is_running:                     # Keep running as long as the LED process is active
                 if not queue_led.empty():                          # If there are commands in the queue

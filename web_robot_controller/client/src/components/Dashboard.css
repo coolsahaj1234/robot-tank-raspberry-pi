@@ -179,12 +179,19 @@
 .dashboard-content {
   flex: 1;
   display: grid;
-  grid-template-columns: 1fr 420px;
-  gap: 1.5rem;
-  padding: 1.5rem;
+  grid-template-columns: 1fr 340px;
+  gap: 1rem;
+  padding: 1rem;
   padding-bottom: 0.75rem;
   overflow: hidden;
   min-height: 0;
+}
+
+.side-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .main-panel {

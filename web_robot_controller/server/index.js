@@ -25,19 +25,33 @@ const DEFAULT_ROBOT_IP = '10.0.0.86';
 const DEFAULT_COMMAND_PORT = 5003;
 const DEFAULT_VIDEO_PORT = 8003;
 
-// Store active TCP connections per WebSocket client
-const clientConnections = new Map();
+// TCP connection timeout
+const TCP_CONNECT_TIMEOUT = 5000;
 
 /**
- * Create TCP connection to robot server
+ * Create TCP connection to robot server with timeout
  */
-function createTCPConnection(ip, port, onData, onError, onClose) {
+function createTCPConnection(ip, port, onConnect, onData, onError, onClose) {
   const socket = new net.Socket();
-  
+  let connected = false;
+  let connectTimeout = null;
+
+  // Set connection timeout
+  connectTimeout = setTimeout(() => {
+    if (!connected) {
+      console.error(`❌ TCP connection timeout to ${ip}:${port}`);
+      socket.destroy();
+      onError(new Error(`Connection timeout to ${ip}:${port}`));
+    }
+  }, TCP_CONNECT_TIMEOUT);
+
   socket.connect(port, ip, () => {
+    connected = true;
+    clearTimeout(connectTimeout);
     console.log(`✅ TCP connected to ${ip}:${port}`);
+    onConnect();
   });
-  
+
   socket.on('data', (data) => {
     try {
       onData(data);
@@ -45,239 +59,272 @@ function createTCPConnection(ip, port, onData, onError, onClose) {
       console.error('Error in data handler:', error);
     }
   });
-  
+
   socket.on('error', (error) => {
+    clearTimeout(connectTimeout);
     console.error(`❌ TCP error on ${ip}:${port}:`, error.message);
     onError(error);
   });
-  
+
   socket.on('close', () => {
+    clearTimeout(connectTimeout);
     console.log(`🔌 TCP disconnected from ${ip}:${port}`);
     onClose();
   });
-  
+
   return socket;
 }
 
 /**
- * WebSocket server for real-time communication
+ * Safely destroy a socket
  */
-const wss = new WebSocket.Server({ port: WS_PORT });
+function destroySocket(socket) {
+  if (socket) {
+    try {
+      socket.removeAllListeners();
+      socket.destroy();
+    } catch (e) {
+      // Ignore errors during cleanup
+    }
+  }
+  return null;
+}
+
+/**
+ * WebSocket server for real-time communication
+ * Binds to 0.0.0.0 for LAN access
+ */
+const wss = new WebSocket.Server({ port: WS_PORT, host: '0.0.0.0' });
 
 wss.on('connection', (ws, req) => {
-  console.log('🌐 New WebSocket client connected');
-  
+  const clientIP = req.socket.remoteAddress;
+  console.log(`🌐 New WebSocket client connected from ${clientIP}`);
+
   let commandSocket = null;
   let videoSocket = null;
   let robotIP = DEFAULT_ROBOT_IP;
   let commandPort = DEFAULT_COMMAND_PORT;
   let videoPort = DEFAULT_VIDEO_PORT;
-  
-  // Video stream state (scoped to this WebSocket connection)
+  let isConnecting = false;
+  let robotConnected = false;
+
+  // Video stream state
   let videoBuffer = Buffer.alloc(0);
   let expectedFrameLength = null;
   let frameCount = 0;
-  
+
+  // Cleanup function
+  const cleanupRobotConnection = () => {
+    commandSocket = destroySocket(commandSocket);
+    videoSocket = destroySocket(videoSocket);
+    videoBuffer = Buffer.alloc(0);
+    expectedFrameLength = null;
+    frameCount = 0;
+    robotConnected = false;
+    isConnecting = false;
+  };
+
+  // Send message safely
+  const safeSend = (data) => {
+    if (ws.readyState === WebSocket.OPEN) {
+      try {
+        ws.send(JSON.stringify(data));
+      } catch (e) {
+        console.error('Error sending WebSocket message:', e);
+      }
+    }
+  };
+
   // Handle messages from browser
   ws.on('message', (message) => {
     try {
       const data = JSON.parse(message.toString());
-      
+
       switch (data.type) {
         case 'connect':
-          // Connect to robot server
+          // Clean up any existing connections first
+          cleanupRobotConnection();
+
           robotIP = data.ip || DEFAULT_ROBOT_IP;
           commandPort = data.commandPort || DEFAULT_COMMAND_PORT;
           videoPort = data.videoPort || DEFAULT_VIDEO_PORT;
-          
+          isConnecting = true;
+
           console.log(`🔌 Connecting to robot at ${robotIP}:${commandPort}/${videoPort}`);
-          console.log(`📡 Command socket: ${robotIP}:${commandPort}`);
-          console.log(`📹 Video socket: ${robotIP}:${videoPort}`);
-          
+
+          let commandConnected = false;
+          let videoConnected = false;
+          let connectionFailed = false;
+
+          const checkAllConnected = () => {
+            if (connectionFailed) return;
+            if (commandConnected && videoConnected) {
+              robotConnected = true;
+              isConnecting = false;
+              safeSend({ type: 'connected' });
+              console.log(`✅ Fully connected to robot at ${robotIP}`);
+            }
+          };
+
+          const handleConnectionError = (socketType, error) => {
+            if (connectionFailed) return;
+            connectionFailed = true;
+            isConnecting = false;
+            console.error(`❌ ${socketType} connection failed: ${error.message}`);
+            cleanupRobotConnection();
+            safeSend({
+              type: 'connection_failed',
+              message: `${socketType} connection failed: ${error.message}`,
+              canRetry: true
+            });
+          };
+
           // Connect command socket
           commandSocket = createTCPConnection(
             robotIP,
             commandPort,
+            () => {
+              commandConnected = true;
+              checkAllConnected();
+            },
             (data) => {
-              // Forward command responses to browser
-              ws.send(JSON.stringify({
+              safeSend({
                 type: 'command_response',
                 data: data.toString('utf8')
-              }));
+              });
             },
-            (error) => {
-              ws.send(JSON.stringify({
-                type: 'error',
-                message: `Command socket error: ${error.message}`
-              }));
-            },
+            (error) => handleConnectionError('Command', error),
             () => {
-              ws.send(JSON.stringify({ type: 'disconnected', socket: 'command' }));
+              if (robotConnected) {
+                safeSend({ type: 'disconnected', socket: 'command' });
+                cleanupRobotConnection();
+              }
             }
           );
-          
-          // Connect video socket with frame length parsing
-          // Reset video buffer state for new connection
-          videoBuffer = Buffer.alloc(0);
-          expectedFrameLength = null;
-          frameCount = 0;
-          
-          console.log(`📹 Initializing video stream buffer for ${robotIP}:${videoPort}`);
-          
+
+          // Connect video socket
           videoSocket = createTCPConnection(
             robotIP,
             videoPort,
+            () => {
+              videoConnected = true;
+              checkAllConnected();
+            },
             (data) => {
               try {
-                // Accumulate data in buffer
                 videoBuffer = Buffer.concat([videoBuffer, data]);
-                
-                // Process buffer continuously
+
                 while (videoBuffer.length > 0) {
                   if (expectedFrameLength === null) {
-                    // Waiting for 4-byte length header
                     if (videoBuffer.length >= 4) {
-                      // Parse little-endian UInt32
                       expectedFrameLength = videoBuffer.readUInt32LE(0);
                       videoBuffer = videoBuffer.slice(4);
-                      
-                      // Validate frame length (1KB to 5MB)
+
                       if (expectedFrameLength < 1000 || expectedFrameLength > 5000000) {
-                        console.warn(`⚠️ Invalid frame length: ${expectedFrameLength}, resyncing...`);
-                        // Try to find JPEG magic bytes
                         const jpegMagic = Buffer.from([0xFF, 0xD8, 0xFF]);
                         const magicIndex = videoBuffer.indexOf(jpegMagic);
                         if (magicIndex >= 0) {
                           videoBuffer = videoBuffer.slice(magicIndex);
                         } else {
-                          // Keep last 3 bytes in case magic is split
                           videoBuffer = videoBuffer.slice(-3);
                         }
                         expectedFrameLength = null;
                         continue;
                       }
-                      
-                      // Valid length, continue to read frame
                     } else {
-                      break; // Need more data for length header
+                      break;
                     }
                   }
-                  
+
                   if (expectedFrameLength !== null) {
-                    // Waiting for frame data
                     if (videoBuffer.length >= expectedFrameLength) {
-                      // Extract frame
                       const frameData = videoBuffer.slice(0, expectedFrameLength);
                       videoBuffer = videoBuffer.slice(expectedFrameLength);
-                      
-                      // Verify JPEG magic bytes
-                      if (frameData.length >= 3 && 
-                          frameData[0] === 0xFF && 
-                          frameData[1] === 0xD8 && 
+
+                      if (frameData.length >= 3 &&
+                          frameData[0] === 0xFF &&
+                          frameData[1] === 0xD8 &&
                           frameData[2] === 0xFF) {
-                        // Forward video frame to browser as base64
                         const base64 = frameData.toString('base64');
-                        if (ws.readyState === WebSocket.OPEN) {
-                          frameCount++;
-                          if (frameCount % 30 === 0) {
-                            console.log(`📸 Sent video frame #${frameCount} (${frameData.length} bytes)`);
-                          }
-                          ws.send(JSON.stringify({
-                            type: 'video_frame',
-                            data: base64,
-                            length: frameData.length
-                          }));
+                        frameCount++;
+                        if (frameCount % 30 === 0) {
+                          console.log(`📸 Sent frame #${frameCount} (${frameData.length} bytes)`);
                         }
-                      } else {
-                        console.warn('⚠️ Frame missing JPEG magic bytes, skipping');
+                        safeSend({
+                          type: 'video_frame',
+                          data: base64,
+                          length: frameData.length
+                        });
                       }
-                      
                       expectedFrameLength = null;
                     } else {
-                      break; // Need more data for frame
+                      break;
                     }
                   }
                 }
               } catch (error) {
-                console.error('❌ Error processing video data:', error);
-                // Reset on error
+                console.error('❌ Error processing video:', error);
                 videoBuffer = Buffer.alloc(0);
                 expectedFrameLength = null;
               }
             },
-            (error) => {
-              ws.send(JSON.stringify({
-                type: 'error',
-                message: `Video socket error: ${error.message}`
-              }));
-            },
+            (error) => handleConnectionError('Video', error),
             () => {
-              ws.send(JSON.stringify({ type: 'disconnected', socket: 'video' }));
+              if (robotConnected) {
+                safeSend({ type: 'disconnected', socket: 'video' });
+                cleanupRobotConnection();
+              }
             }
           );
-          
-          ws.send(JSON.stringify({ type: 'connected' }));
           break;
-          
+
         case 'command':
-          // Send command to robot
-          if (commandSocket && commandSocket.writable) {
+          if (commandSocket && commandSocket.writable && robotConnected) {
             const command = data.command + '\n';
             commandSocket.write(command, 'utf8');
-            console.log(`📤 Command: ${data.command}`);
           } else {
-            ws.send(JSON.stringify({
+            safeSend({
               type: 'error',
               message: 'Not connected to robot'
-            }));
+            });
           }
           break;
-          
+
         case 'disconnect':
-          // Disconnect from robot
-          if (commandSocket) {
-            commandSocket.destroy();
-            commandSocket = null;
-          }
-          if (videoSocket) {
-            videoSocket.destroy();
-            videoSocket = null;
-          }
-          ws.send(JSON.stringify({ type: 'disconnected' }));
+          cleanupRobotConnection();
+          safeSend({ type: 'disconnected' });
           break;
-          
+
+        case 'ping':
+          safeSend({ type: 'pong', timestamp: Date.now() });
+          break;
+
         default:
           console.warn('Unknown message type:', data.type);
       }
     } catch (error) {
       console.error('Error handling WebSocket message:', error);
-      ws.send(JSON.stringify({
+      safeSend({
         type: 'error',
         message: error.message
-      }));
+      });
     }
   });
-  
+
   ws.on('close', () => {
-    console.log('🌐 WebSocket client disconnected');
-    if (commandSocket) {
-      commandSocket.destroy();
-    }
-    if (videoSocket) {
-      videoSocket.destroy();
-    }
-    clientConnections.delete(ws);
+    console.log(`🌐 WebSocket client disconnected from ${clientIP}`);
+    cleanupRobotConnection();
   });
-  
+
   ws.on('error', (error) => {
     console.error('WebSocket error:', error);
   });
-  
-  // Send initial connection status
-  ws.send(JSON.stringify({
+
+  // Send initial ready message
+  safeSend({
     type: 'ready',
     message: 'WebSocket server ready'
-  }));
+  });
 });
 
 // HTTP API endpoints
@@ -292,12 +339,11 @@ if (process.env.NODE_ENV === 'production') {
   });
 }
 
-// Start HTTP server
-app.listen(PORT, () => {
-  console.log(`🚀 HTTP server running on http://localhost:${PORT}`);
-  console.log(`🌐 WebSocket server running on ws://localhost:${WS_PORT}`);
+// Start HTTP server - bind to 0.0.0.0 for LAN access
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 HTTP server running on http://0.0.0.0:${PORT}`);
+  console.log(`🌐 WebSocket server running on ws://0.0.0.0:${WS_PORT}`);
   console.log(`📡 Ready to bridge connections to robot server`);
   console.log(`\n💡 Make sure your robot server is running on the Raspberry Pi`);
   console.log(`💡 Default robot IP: ${DEFAULT_ROBOT_IP}:${DEFAULT_COMMAND_PORT}/${DEFAULT_VIDEO_PORT}\n`);
 });
-

@@ -17,8 +17,10 @@ class TankServer:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # Create a UDP socket
         return socket.inet_ntoa(fcntl.ioctl(s.fileno(), 0x8915, struct.pack('256s', b'wlan0'[:15]))[20:24])  # Get the IP address of the wlan0 interface
 
-    def startTcpServer(self, port1=5003, port2=8003, max_clients=1, listen_count=1):
+    def startTcpServer(self, port1=5003, port2=8003, max_clients=2, listen_count=5):
         # Start the TCP servers on specified ports
+        # max_clients=2 allows for reconnection scenarios (old connection cleanup + new connection)
+        # listen_count=5 allows more pending connections in the queue
         self.cmdServer.start(self.ip, port1, max_clients, listen_count)  # Start the command server
         self.videoServer.start(self.ip, port2, max_clients, listen_count)  # Start the video server
 
