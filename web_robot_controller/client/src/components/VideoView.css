@@ -1,0 +1,154 @@
+.video-view {
+  flex: 1;
+  min-height: 0;
+  background: #000;
+  border-radius: 16px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.video-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.video-frame {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  image-rendering: high-quality;
+}
+
+.video-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: #666;
+  background: radial-gradient(circle at center, #1a1a1a 0%, #0a0a0a 100%);
+}
+
+.placeholder-icon {
+  margin-bottom: 1rem;
+  opacity: 0.4;
+  color: #666;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.placeholder-text {
+  font-size: 1.1rem;
+  opacity: 0.7;
+  font-weight: 500;
+}
+
+.placeholder-hint {
+  font-size: 0.75rem;
+  color: #888;
+  margin-top: 0.5rem;
+  opacity: 0.6;
+}
+
+/* Overlay Styles */
+.video-overlay {
+  position: absolute;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.video-overlay-top-left {
+  top: 1rem;
+  left: 1rem;
+}
+
+.video-overlay-top-right {
+  top: 1rem;
+  right: 1rem;
+}
+
+.video-overlay-bottom-left {
+  bottom: 1rem;
+  left: 1rem;
+}
+
+.video-overlay-bottom-right {
+  bottom: 1rem;
+  right: 1rem;
+}
+
+.overlay-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #fff;
+}
+
+.overlay-item.status-connected {
+  color: #22c55e;
+}
+
+.overlay-item.status-disconnected {
+  color: #ef4444;
+}
+
+.overlay-label {
+  color: #aaa;
+  font-size: 0.75rem;
+  margin-right: 0.25rem;
+}
+
+.overlay-value {
+  color: #fff;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+}
+
+.sensor-item {
+  padding: 0.5rem;
+  background: rgba(34, 197, 94, 0.1);
+  border-radius: 8px;
+  border: 1px solid rgba(34, 197, 94, 0.2);
+}
+
+.sensor-icon {
+  color: #22c55e;
+  flex-shrink: 0;
+}
+
+.sensor-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.sensor-label {
+  font-size: 0.7rem;
+  color: #aaa;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sensor-value {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #22c55e;
+  font-family: 'Courier New', monospace;
+}
+
