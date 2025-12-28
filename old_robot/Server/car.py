@@ -3,6 +3,10 @@ from ultrasonic import Ultrasonic
 from motor import tankMotor
 from servo import Servo
 from infrared import Infrared
+<<<<<<< HEAD
+=======
+from mpu6050 import MPU6050
+>>>>>>> 40885bf (Initial commit)
 import time
 
 # Define the Car class to manage all components and functionalities
@@ -14,6 +18,10 @@ class Car:
         self.sonic_back = None  # Back ultrasonic sensor
         self.motor = None
         self.infrared = None
+<<<<<<< HEAD
+=======
+        self.imu = None
+>>>>>>> 40885bf (Initial commit)
         # Call the start method to initialize components
         self.start()
 
@@ -34,6 +42,17 @@ class Car:
         # Initialize infrared sensor if not already initialized
         if self.infrared is None:
             self.infrared = Infrared()
+<<<<<<< HEAD
+=======
+        # Initialize IMU if not already initialized
+        if self.imu is None:
+            try:
+                self.imu = MPU6050()
+                self.imu.calibrate(samples=50) # Fast calibration on start
+                print("MPU6050 initialized and calibrated")
+            except Exception as e:
+                print(f"Failed to initialize MPU6050: {e}")
+>>>>>>> 40885bf (Initial commit)
 
     def close(self):
         # Reset clamp mode
@@ -49,17 +68,57 @@ class Car:
         self.motor.close()
         # Close infrared sensor
         self.infrared.close()
+<<<<<<< HEAD
+=======
+        # Close IMU (no explicit close needed for smbus but clear ref)
+        self.imu = None
+>>>>>>> 40885bf (Initial commit)
         # Set all components to None
         self.servo = None
         self.sonic = None
         self.sonic_back = None
         self.motor = None
         self.infrared = None
+<<<<<<< HEAD
 
     def mode_ultrasonic(self):
         # Get distance from ultrasonic sensor
         distance = self.sonic.get_distance()
         # print("Ultrasonic distance is " + str(distance) + "CM")
+=======
+        self.imu = None
+
+    def is_stuck(self, threshold_accel=0.03, threshold_gyro=0.8):
+        """Check if robot is physically vibrating/moving"""
+        if self.imu is None:
+            return False
+        data = self.imu.get_motion_data()
+        # If any axis shows significant motion, we're not stuck
+        if abs(data['accel']['x']) > threshold_accel or \
+           abs(data['accel']['y']) > threshold_accel or \
+           abs(data['gyro']['x']) > threshold_gyro or \
+           abs(data['gyro']['y']) > threshold_gyro or \
+           abs(data['gyro']['z']) > threshold_gyro:
+            return False
+        return True
+
+    def is_tilted(self, threshold=0.5):
+        """Check for dangerous tilt (default ~30 degrees)"""
+        if self.imu is None:
+            return False
+        data = self.imu.get_motion_data()
+        return abs(data['accel']['x']) > threshold or abs(data['accel']['y']) > threshold
+
+    def mode_ultrasonic(self):
+        # 1. Safety Check: Tilt Stop
+        if self.is_tilted():
+            print("CRITICAL TILT! Stopping.")
+            self.motor.setMotorModel(0, 0)
+            return
+
+        # Get distance from ultrasonic sensor
+        distance = self.sonic.get_distance()
+>>>>>>> 40885bf (Initial commit)
 
         # Check if distance is valid
         if distance != 0:
@@ -67,6 +126,7 @@ class Car:
             if distance < 45:
                 self.motor.setMotorModel(-1500, -1500)
                 time.sleep(0.4)
+<<<<<<< HEAD
                 self.motor.setMotorModel(-1500, 1500)
                 time.sleep(0.2)
             # Otherwise, move forward
@@ -74,6 +134,24 @@ class Car:
                 self.motor.setMotorModel(1500, 1500)
         # Sleep for a short duration
         time.sleep(0.2)
+=======
+                self.motor.setMotorModel(-1800, 1800)
+                time.sleep(0.3)
+            # Otherwise, move forward
+            else:
+                self.motor.setMotorModel(1500, 1500)
+                # Check if we are physically moving
+                # If forward driving but no IMU motion, we are stuck
+                if self.is_stuck(threshold_accel=0.04):
+                    print("Autonomous Stuck Detected! Recovering...")
+                    self.motor.setMotorModel(-1800, -1800)
+                    time.sleep(0.6)
+                    self.motor.setMotorModel(1500, -1500)
+                    time.sleep(0.4)
+        
+        # Sleep for a short duration
+        time.sleep(0.1)
+>>>>>>> 40885bf (Initial commit)
     
     def mode_infrared(self):
         # Get distance from ultrasonic sensor

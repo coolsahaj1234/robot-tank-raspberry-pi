@@ -49,8 +49,20 @@
 }
 
 @keyframes statusPulse {
+<<<<<<< HEAD
   0%, 100% { opacity: 1; }
   50% { opacity: 0.6; }
+=======
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.6;
+  }
+>>>>>>> 40885bf (Initial commit)
 }
 
 .chat-messages {
@@ -87,6 +99,10 @@
     opacity: 0;
     transform: translateY(10px);
   }
+<<<<<<< HEAD
+=======
+
+>>>>>>> 40885bf (Initial commit)
   to {
     opacity: 1;
     transform: translateY(0);
@@ -236,3 +252,43 @@
   cursor: not-allowed;
   transform: none;
 }
+<<<<<<< HEAD
+=======
+
+.chat-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.action-btn.standby {
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.4);
+  color: #a78bfa;
+}
+
+.action-btn.standby:hover:not(:disabled) {
+  background: rgba(139, 92, 246, 0.2);
+  border-color: rgba(139, 92, 246, 0.6);
+  transform: translateY(-2px);
+}
+
+.action-btn.standby.active {
+  background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+  color: white;
+  border: none;
+  animation: standbyPulse 2s ease-in-out infinite;
+}
+
+@keyframes standbyPulse {
+
+  0%,
+  100% {
+    box-shadow: 0 0 10px rgba(139, 92, 246, 0.4);
+  }
+
+  50% {
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.6);
+  }
+}
+>>>>>>> 40885bf (Initial commit)

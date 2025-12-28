@@ -90,11 +90,12 @@ function destroySocket(socket) {
   return null;
 }
 
-/**
- * WebSocket server for real-time communication
- * Binds to 0.0.0.0 for LAN access
- */
+// WebSocket server for real-time communication - bind to 0.0.0.0 for LAN access
 const wss = new WebSocket.Server({ port: WS_PORT, host: '0.0.0.0' });
+
+wss.on('error', (err) => {
+  console.error('❌ WebSocket server error:', err.message);
+});
 
 wss.on('connection', (ws, req) => {
   const clientIP = req.socket.remoteAddress;
@@ -242,9 +243,9 @@ wss.on('connection', (ws, req) => {
                       videoBuffer = videoBuffer.slice(expectedFrameLength);
 
                       if (frameData.length >= 3 &&
-                          frameData[0] === 0xFF &&
-                          frameData[1] === 0xD8 &&
-                          frameData[2] === 0xFF) {
+                        frameData[0] === 0xFF &&
+                        frameData[1] === 0xD8 &&
+                        frameData[2] === 0xFF) {
                         const base64 = frameData.toString('base64');
                         frameCount++;
                         if (frameCount % 30 === 0) {

@@ -1,5 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
+<<<<<<< HEAD
 import { Bot, Send, Play, Square } from 'lucide-react'
+=======
+import { Bot, Send, Play, Square, Camera, Eye, EyeOff } from 'lucide-react'
+>>>>>>> 40885bf (Initial commit)
 import './AIChatPanel.css'
 
 /**
@@ -15,8 +19,17 @@ export default function AIChatPanel({
   narration,
   autonomousEnabled,
   onSetAutonomousEnabled,
+<<<<<<< HEAD
   onSendCommand,
   dangerZone
+=======
+  isSantaMode,
+  isSantaStandby,
+  onSetSantaStandby,
+  onSendCommand,
+  dangerZone,
+  videoFrame
+>>>>>>> 40885bf (Initial commit)
 }) {
   const chatContainerRef = useRef(null)
   const inputRef = useRef(null)
@@ -129,6 +142,49 @@ export default function AIChatPanel({
     }, 300)
   }, [userInput, connected, onSendCommand, onSetAutonomousEnabled, sensorData, radarData, detectedObjects, dangerZone, autonomousEnabled])
 
+<<<<<<< HEAD
+=======
+  const handleCapturePhoto = useCallback(async () => {
+    if (!videoFrame || !connected) return
+
+    try {
+      const base64Data = videoFrame.includes(',') ? videoFrame.split(',')[1] : videoFrame
+      const host = window.location.hostname
+      const aiServiceUrl = `http://${host}:5001`
+
+      const response = await fetch(`${aiServiceUrl}/capture_photo`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ frame: base64Data })
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        setChatMessages(prev => [...prev, {
+          role: 'assistant',
+          text: `📸 Photo captured! Saved as ${result.filename}`,
+          timestamp: Date.now()
+        }])
+      } else {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+        console.error('Capture failed:', errorData)
+        setChatMessages(prev => [...prev, {
+          role: 'assistant',
+          text: `❌ Failed to capture photo: ${errorData.error || response.statusText}`,
+          timestamp: Date.now()
+        }])
+      }
+    } catch (error) {
+      console.error('Photo capture error:', error)
+      setChatMessages(prev => [...prev, {
+        role: 'assistant',
+        text: `❌ Error capturing photo: ${error.message}`,
+        timestamp: Date.now()
+      }])
+    }
+  }, [videoFrame, connected])
+
+>>>>>>> 40885bf (Initial commit)
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
@@ -198,6 +254,43 @@ export default function AIChatPanel({
           {autonomousEnabled ? <Square size={14} /> : <Play size={14} />}
           <span>{autonomousEnabled ? 'Stop' : 'Start Exploring'}</span>
         </button>
+<<<<<<< HEAD
+=======
+
+        {isSantaMode && (
+          <button
+            className={`action-btn standby ${isSantaStandby ? 'active' : ''}`}
+            onClick={() => {
+              const newStandby = !isSantaStandby
+              onSetSantaStandby(newStandby)
+              setChatMessages(prev => [...prev, {
+                role: 'assistant',
+                text: newStandby
+                  ? "Standby Mode Active. I'll stay here and watch for Santa! 🎅📸"
+                  : "Standby Mode deactivated. I'll move around again.",
+                timestamp: Date.now()
+              }])
+            }}
+            disabled={!connected}
+            title="Santa Standby: Track people/hats from here and take photos."
+          >
+            {isSantaStandby ? <Camera size={14} /> : <Eye size={14} />}
+            <span>{isSantaStandby ? 'Standby ON' : 'Santa Standby'}</span>
+          </button>
+        )}
+
+        {isSantaMode && isSantaStandby && (
+          <button
+            className="action-btn capture"
+            onClick={handleCapturePhoto}
+            disabled={!connected || !videoFrame}
+            title="Manually capture and save a photo"
+          >
+            <Camera size={14} />
+            <span>Capture Photo</span>
+          </button>
+        )}
+>>>>>>> 40885bf (Initial commit)
       </div>
 
     </div>

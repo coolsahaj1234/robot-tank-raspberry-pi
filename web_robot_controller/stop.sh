@@ -28,10 +28,20 @@ fi
 
 # Kill any processes on our ports
 for port in 3001 3002 5001 5173; do
-    pids=$(lsof -ti :$port 2>/dev/null)
-    if [ -n "$pids" ]; then
-        echo "Killing processes on port $port: $pids"
-        echo "$pids" | xargs kill -9 2>/dev/null || true
+    if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" ]]; then
+        pids=$(netstat -aon | grep ":$port" | grep "LISTENING" | awk '{print $5}')
+        if [ -n "$pids" ]; then
+            for pid in $pids; do
+                echo "Killing process on port $port: $pid"
+                taskkill //F //PID $pid >/dev/null 2>&1 || true
+            done
+        fi
+    else
+        pids=$(lsof -ti :$port 2>/dev/null)
+        if [ -n "$pids" ]; then
+            echo "Killing processes on port $port: $pids"
+            echo "$pids" | xargs kill -9 2>/dev/null || true
+        fi
     fi
 done
 

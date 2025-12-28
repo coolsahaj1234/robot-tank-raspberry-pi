@@ -39,14 +39,26 @@ command_exists() {
 }
 
 port_in_use() {
-    lsof -Pi :$1 -sTCP:LISTEN -t >/dev/null 2>&1
+    if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" ]]; then
+        netstat -aon | findstr ":$1" | findstr "LISTENING" >/dev/null 2>&1
+    else
+        lsof -Pi :$1 -sTCP:LISTEN -t >/dev/null 2>&1
+    fi
 }
 
 kill_port() {
     local port=$1
     if port_in_use $port; then
         echo -e "${YELLOW}Killing process on port $port...${NC}"
-        lsof -ti :$port | xargs kill -9 2>/dev/null || true
+        if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" ]]; then
+            # Find PID using netstat
+            local pid=$(netstat -aon | grep ":$port" | grep "LISTENING" | awk '{print $5}' | head -n 1)
+            if [ -n "$pid" ]; then
+                taskkill //F //PID $pid >/dev/null 2>&1 || true
+            fi
+        else
+            lsof -ti :$port | xargs kill -9 2>/dev/null || true
+        fi
         sleep 1
     fi
 }
@@ -96,19 +108,28 @@ check_prerequisites() {
     echo -e "${GREEN}✅ npm $(npm --version)${NC}"
 
     # Check Python 3
+    PYTHON_CMD="python3"
     if ! command_exists python3; then
-        echo -e "${RED}❌ Python 3 is not installed${NC}"
-        echo -e "   Install with: brew install python3"
-        exit 1
+        if command_exists python; then
+            PYTHON_CMD="python"
+        else
+            echo -e "${RED}❌ Python is not installed${NC}"
+            exit 1
+        fi
     fi
-    echo -e "${GREEN}✅ $(python3 --version)${NC}"
+    echo -e "${GREEN}✅ $($PYTHON_CMD --version)${NC}"
 
-    # Check pip3
+    # Check pip
+    PIP_CMD="pip3"
     if ! command_exists pip3; then
-        echo -e "${RED}❌ pip3 is not installed${NC}"
-        exit 1
+        if command_exists pip; then
+            PIP_CMD="pip"
+        else
+            echo -e "${RED}❌ pip is not installed${NC}"
+            exit 1
+        fi
     fi
-    echo -e "${GREEN}✅ pip3 installed${NC}"
+    echo -e "${GREEN}✅ $PIP_CMD installed${NC}"
 
     echo ""
 }
@@ -175,7 +196,7 @@ install_dependencies() {
     if [ ! -d "ai_service/venv" ]; then
         echo -e "${YELLOW}🐍 Creating Python virtual environment...${NC}"
         cd ai_service
-        python3 -m venv venv
+        $PYTHON_CMD -m venv venv
         cd ..
         echo ""
     fi
@@ -183,18 +204,23 @@ install_dependencies() {
     # Install Python dependencies
     echo -e "${YELLOW}🐍 Checking Python dependencies...${NC}"
     cd ai_service
-    source venv/bin/activate
-
     # Check if key packages are installed
-    if ! python3 -c "import cv2, flask, numpy" 2>/dev/null; then
+    PYTHON_EXEC="venv/bin/python3"
+    PIP_EXEC="venv/bin/pip3"
+    if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" ]]; then
+        PYTHON_EXEC="venv/Scripts/python"
+        PIP_EXEC="venv/Scripts/pip"
+    fi
+
+    if ! $PYTHON_EXEC -c "import cv2, flask, numpy" 2>/dev/null; then
         echo -e "${YELLOW}📦 Installing Python AI service dependencies...${NC}"
-        pip install --upgrade pip
-        pip install -r requirements.txt
+        $PIP_EXEC install --upgrade pip
+        $PIP_EXEC install -r requirements.txt
     else
         echo -e "${GREEN}✅ Python dependencies installed${NC}"
     fi
 
-    deactivate
+    # deactivate is not needed since we're using full paths, but source for good measure if we were in interactive
     cd ..
     echo ""
 }
@@ -225,11 +251,14 @@ start_services() {
     # Start AI Service
     echo -e "${BLUE}Starting AI Service...${NC}"
     cd ai_service
-    source venv/bin/activate
-    python3 server.py > ../logs/ai_service.log 2>&1 &
+    if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" ]]; then
+        venv/Scripts/python server.py > ../logs/ai_service.log 2>&1 &
+    else
+        source venv/bin/activate
+        python3 server.py > ../logs/ai_service.log 2>&1 &
+    fi
     AI_PID=$!
     echo $AI_PID >> "$PID_FILE"
-    deactivate
     cd ..
 
     # Wait for AI service to start (up to 5 seconds)

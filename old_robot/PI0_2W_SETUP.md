@@ -68,18 +68,30 @@ sudo python test.py motor
 First, install required packages using apt (recommended):
 ```bash
 sudo apt-get update
+<<<<<<< HEAD
 sudo apt-get install python3-numpy python3-spidev
+=======
+sudo apt-get install python3-numpy python3-spidev python3-smbus
+>>>>>>> 40885bf (Initial commit)
 ```
 
 **OR** if apt packages are not available, use pip3 with override flag:
 ```bash
+<<<<<<< HEAD
 sudo pip3 install --break-system-packages numpy spidev
+=======
+sudo pip3 install --break-system-packages numpy spidev smbus2
+>>>>>>> 40885bf (Initial commit)
 ```
 
 Then enable SPI if not already enabled:
 ```bash
 sudo raspi-config
 # Navigate to: Interface Options → SPI → Enable
+<<<<<<< HEAD
+=======
+# Navigate to: Interface Options → I2C → Enable
+>>>>>>> 40885bf (Initial commit)
 sudo reboot
 ```
 

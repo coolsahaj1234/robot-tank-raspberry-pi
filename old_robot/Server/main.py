@@ -195,16 +195,46 @@ class mywindow(QMainWindow, Ui_server_ui):
                 distance_back = self.car.sonic_back.get_distance()
                 if self.tcp_server.get_cmd_server_busy() == False:
                     self.tcp_server.set_cmd_server_busy(True)
+<<<<<<< HEAD
                     self.tcp_server.sendDataToCmdClinet("CMD_SONIC#{:.2f}#{:.2f}".format(distance_front, distance_back))
                     self.tcp_server.set_cmd_server_busy(False)
                 time.sleep(1)                                                     # Sleep for 1 second if the car mode is 1
+=======
+                    self.tcp_server.sendDataToCmdClinet("CMD_SONIC#{:.2f}#{:.2f}\n".format(distance_front, distance_back))
+                    # Read and send IMU data if available
+                    if self.car.imu:
+                        try:
+                            imu_data = self.car.imu.get_motion_data()
+                            self.tcp_server.sendDataToCmdClinet("CMD_IMU#{:.2f}#{:.2f}#{:.2f}#{:.2f}#{:.2f}#{:.2f}\n".format(
+                                imu_data['accel']['x'], imu_data['accel']['y'], imu_data['accel']['z'],
+                                imu_data['gyro']['x'], imu_data['gyro']['y'], imu_data['gyro']['z']
+                            ))
+                        except Exception as e:
+                            print(f"Error reading IMU: {e}")
+                    self.tcp_server.set_cmd_server_busy(False)
+                time.sleep(0.2)                                                     # Sleep for 0.2 seconds for responsive telemetry
+>>>>>>> 40885bf (Initial commit)
             elif self.car_mode == 2:
                 self.car.mode_ultrasonic()                                        # Set the car mode to ultrasonic
                 distance_front = self.car.sonic.get_distance()
                 distance_back = self.car.sonic_back.get_distance()
                 if self.tcp_server.get_cmd_server_busy() == False:
                     self.tcp_server.set_cmd_server_busy(True)
+<<<<<<< HEAD
                     self.tcp_server.sendDataToCmdClinet("CMD_SONIC#{:.2f}#{:.2f}".format(distance_front, distance_back))
+=======
+                    self.tcp_server.sendDataToCmdClinet("CMD_SONIC#{:.2f}#{:.2f}\n".format(distance_front, distance_back))
+                    # Read and send IMU data if available
+                    if self.car.imu:
+                        try:
+                            imu_data = self.car.imu.get_motion_data()
+                            self.tcp_server.sendDataToCmdClinet("CMD_IMU#{:.2f}#{:.2f}#{:.2f}#{:.2f}#{:.2f}#{:.2f}\n".format(
+                                imu_data['accel']['x'], imu_data['accel']['y'], imu_data['accel']['z'],
+                                imu_data['gyro']['x'], imu_data['gyro']['y'], imu_data['gyro']['z']
+                            ))
+                        except Exception as e:
+                            print(f"Error reading IMU: {e}")
+>>>>>>> 40885bf (Initial commit)
                     self.tcp_server.set_cmd_server_busy(False)
             elif self.car_mode == 3:
                 self.car.mode_infrared()                                          # Set the car mode to infrared

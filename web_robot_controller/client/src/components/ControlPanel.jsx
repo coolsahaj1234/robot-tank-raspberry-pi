@@ -1,10 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react'
+<<<<<<< HEAD
 import { ArrowUp, ArrowDown, ArrowLeft, ArrowRight, GripVertical, AlertTriangle } from 'lucide-react'
+=======
+import { ArrowUp, ArrowDown, ArrowLeft, ArrowRight, GripVertical, AlertTriangle, Compass } from 'lucide-react'
+>>>>>>> 40885bf (Initial commit)
 import ServoControl from './ServoControl'
 import LEDControl from './LEDControl'
 import { useMovementIntelligence } from '../hooks/useMovementIntelligence'
 import './ControlPanel.css'
 
+<<<<<<< HEAD
 export default function ControlPanel({ connected, onSendCommand, videoFrame, sensorData, currentMode }) {
   const [pressedKeys, setPressedKeys] = useState(new Set())
   const [speed, setSpeed] = useState(50)
@@ -20,6 +25,23 @@ export default function ControlPanel({ connected, onSendCommand, videoFrame, sen
     onSendCommand
   })
   
+=======
+export default function ControlPanel({
+  connected,
+  onSendCommand,
+  videoFrame,
+  sensorData,
+  currentMode,
+  speed,
+  setSpeed,
+  effectiveSpeed,
+  isStuck,
+  obstacleDetected
+}) {
+  const [pressedKeys, setPressedKeys] = useState(new Set())
+  const dpadTimeoutRef = useRef(null)
+
+>>>>>>> 40885bf (Initial commit)
   // Use effective speed for motor commands in Move mode
   const motorSpeed = currentMode === '1' ? effectiveSpeed : speed
 
@@ -86,7 +108,11 @@ export default function ControlPanel({ connected, onSendCommand, videoFrame, sen
     if (!connected) {
       return // Don't send commands if not connected
     }
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> 40885bf (Initial commit)
     if (pressedKeys.size === 0) {
       onSendCommand('CMD_MOTOR#0#0')
       return
@@ -122,18 +148,31 @@ export default function ControlPanel({ connected, onSendCommand, videoFrame, sen
       console.warn('⚠️ Cannot send command: not connected')
       return
     }
+<<<<<<< HEAD
     
     console.log(`🎮 D-pad clicked: x=${x}, y=${y}, speed=${speed}`)
     
+=======
+
+    console.log(`🎮 D-pad clicked: x=${x}, y=${y}, speed=${speed}`)
+
+>>>>>>> 40885bf (Initial commit)
     // Clear any existing timeout
     if (dpadTimeoutRef.current) {
       clearTimeout(dpadTimeoutRef.current)
       dpadTimeoutRef.current = null
     }
+<<<<<<< HEAD
     
     // Clear any pressed keys to prevent keyboard controls from interfering
     setPressedKeys(new Set())
     
+=======
+
+    // Clear any pressed keys to prevent keyboard controls from interfering
+    setPressedKeys(new Set())
+
+>>>>>>> 40885bf (Initial commit)
     // Ensure we're in manual mode (CMD_MODE#0 = manual control, doesn't auto-control motors)
     // Always ensure mode is set before sending motor commands
     if (!manualModeSetRef.current) {
@@ -154,6 +193,7 @@ export default function ControlPanel({ connected, onSendCommand, videoFrame, sen
     const turnFactor = 0.8  // 80% differential for turning (was 0.5 = 50%)
     const leftSpeedPercent = (y * speed) + (x * speed * turnFactor)
     const rightSpeedPercent = (y * speed) - (x * speed * turnFactor)
+<<<<<<< HEAD
     
     const clampedLeftPercent = Math.max(-100, Math.min(100, leftSpeedPercent))
     const clampedRightPercent = Math.max(-100, Math.min(100, rightSpeedPercent))
@@ -167,6 +207,21 @@ export default function ControlPanel({ connected, onSendCommand, videoFrame, sen
     // Send movement command
     onSendCommand(`CMD_MOTOR#${leftMotorValue}#${rightMotorValue}`)
     
+=======
+
+    const clampedLeftPercent = Math.max(-100, Math.min(100, leftSpeedPercent))
+    const clampedRightPercent = Math.max(-100, Math.min(100, rightSpeedPercent))
+
+    // Convert to motor duty cycle values (use effective speed in Move mode)
+    const leftMotorValue = scaleToMotorValue(clampedLeftPercent * (motorSpeed / 100))
+    const rightMotorValue = scaleToMotorValue(clampedRightPercent * (motorSpeed / 100))
+
+    console.log(`📤 Sending motor command: left=${leftMotorValue} (${clampedLeftPercent}% @ ${motorSpeed}%), right=${rightMotorValue} (${clampedRightPercent}% @ ${motorSpeed}%)`)
+
+    // Send movement command
+    onSendCommand(`CMD_MOTOR#${leftMotorValue}#${rightMotorValue}`)
+
+>>>>>>> 40885bf (Initial commit)
     // Stop after 100ms - use ref to ensure it's called
     dpadTimeoutRef.current = setTimeout(() => {
       if (connected) {
@@ -176,7 +231,11 @@ export default function ControlPanel({ connected, onSendCommand, videoFrame, sen
       dpadTimeoutRef.current = null
     }, 100)
   }
+<<<<<<< HEAD
   
+=======
+
+>>>>>>> 40885bf (Initial commit)
   // Cleanup timeout on unmount or disconnect
   useEffect(() => {
     return () => {
@@ -186,7 +245,11 @@ export default function ControlPanel({ connected, onSendCommand, videoFrame, sen
       }
     }
   }, [])
+<<<<<<< HEAD
   
+=======
+
+>>>>>>> 40885bf (Initial commit)
   // Stop motors when disconnecting
   useEffect(() => {
     if (!connected && dpadTimeoutRef.current) {
@@ -221,14 +284,22 @@ export default function ControlPanel({ connected, onSendCommand, videoFrame, sen
             />
           </div>
         </div>
+<<<<<<< HEAD
         
+=======
+
+>>>>>>> 40885bf (Initial commit)
         {currentMode === '1' && (isStuck || obstacleDetected) && (
           <div className="movement-status">
             {isStuck && <span className="status-badge stuck">⚠️ Stuck Detected</span>}
             {obstacleDetected && <span className="status-badge obstacle">🚧 Obstacle Near</span>}
           </div>
         )}
+<<<<<<< HEAD
         
+=======
+
+>>>>>>> 40885bf (Initial commit)
         <div className="dpad-container-compact">
           <div className="dpad-compact">
             <button
@@ -275,6 +346,34 @@ export default function ControlPanel({ connected, onSendCommand, videoFrame, sen
         </div>
       </div>
 
+<<<<<<< HEAD
+=======
+      <div className="control-section imu-section">
+        <div className="imu-header">
+          <Compass size={18} />
+          <h3>Orientation & IMU</h3>
+        </div>
+        <div className="imu-grid">
+          <div className="imu-group">
+            <label>Accelerometer (g)</label>
+            <div className="imu-values">
+              <span>X: {sensorData.imu?.accel.x.toFixed(2)}</span>
+              <span>Y: {sensorData.imu?.accel.y.toFixed(2)}</span>
+              <span>Z: {sensorData.imu?.accel.z.toFixed(2)}</span>
+            </div>
+          </div>
+          <div className="imu-group">
+            <label>Gyroscope (°/s)</label>
+            <div className="imu-values">
+              <span>X: {sensorData.imu?.gyro.x.toFixed(2)}</span>
+              <span>Y: {sensorData.imu?.gyro.y.toFixed(2)}</span>
+              <span>Z: {sensorData.imu?.gyro.z.toFixed(2)}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+>>>>>>> 40885bf (Initial commit)
       <ServoControl connected={connected} onSendCommand={onSendCommand} />
       <LEDControl connected={connected} onSendCommand={onSendCommand} />
     </div>
