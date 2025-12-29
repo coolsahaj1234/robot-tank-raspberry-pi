@@ -1,9 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-<<<<<<< HEAD
-import { Bot, Send, Play, Square } from 'lucide-react'
-=======
 import { Bot, Send, Play, Square, Camera, Eye, EyeOff } from 'lucide-react'
->>>>>>> 40885bf (Initial commit)
 import './AIChatPanel.css'
 
 /**
@@ -19,17 +15,12 @@ export default function AIChatPanel({
   narration,
   autonomousEnabled,
   onSetAutonomousEnabled,
-<<<<<<< HEAD
-  onSendCommand,
-  dangerZone
-=======
   isSantaMode,
   isSantaStandby,
   onSetSantaStandby,
   onSendCommand,
   dangerZone,
   videoFrame
->>>>>>> 40885bf (Initial commit)
 }) {
   const chatContainerRef = useRef(null)
   const inputRef = useRef(null)
@@ -142,8 +133,6 @@ export default function AIChatPanel({
     }, 300)
   }, [userInput, connected, onSendCommand, onSetAutonomousEnabled, sensorData, radarData, detectedObjects, dangerZone, autonomousEnabled])
 
-<<<<<<< HEAD
-=======
   const handleCapturePhoto = useCallback(async () => {
     if (!videoFrame || !connected) return
 
@@ -184,7 +173,6 @@ export default function AIChatPanel({
     }
   }, [videoFrame, connected])
 
->>>>>>> 40885bf (Initial commit)
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
@@ -254,8 +242,6 @@ export default function AIChatPanel({
           {autonomousEnabled ? <Square size={14} /> : <Play size={14} />}
           <span>{autonomousEnabled ? 'Stop' : 'Start Exploring'}</span>
         </button>
-<<<<<<< HEAD
-=======
 
         {isSantaMode && (
           <button
@@ -290,7 +276,6 @@ export default function AIChatPanel({
             <span>Capture Photo</span>
           </button>
         )}
->>>>>>> 40885bf (Initial commit)
       </div>
 
     </div>

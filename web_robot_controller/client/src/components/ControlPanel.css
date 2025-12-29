@@ -10,8 +10,6 @@
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   height: 100%;
   box-sizing: border-box;
-<<<<<<< HEAD
-=======
   overflow-y: auto;
   min-height: 0;
 }
@@ -33,7 +31,6 @@
 
 .control-panel::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.3);
->>>>>>> 40885bf (Initial commit)
 }
 
 .control-section {
@@ -377,9 +374,4 @@
   font-size: 0.65rem;
   color: #666;
   margin: 0;
-<<<<<<< HEAD
 }
-
-=======
-}
->>>>>>> 40885bf (Initial commit)

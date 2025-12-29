@@ -73,8 +73,6 @@ start_pigpiod() {
     fi
 }
 
-<<<<<<< HEAD
-=======
 # Function to install pigpio from source (fallback)
 install_pigpio_from_source() {
     echo -e "${YELLOW}Compiling pigpio from source (this may take a few minutes)...${NC}"
@@ -160,7 +158,6 @@ install_dependencies() {
     return 0
 }
 
->>>>>>> 40885bf (Initial commit)
 # Function to verify Python dependencies
 check_python_deps() {
     echo -e "${YELLOW}Checking Python dependencies...${NC}"
@@ -171,23 +168,15 @@ check_python_deps() {
     python3 -c "import picamera2" 2>/dev/null || missing_deps+=("picamera2")
     python3 -c "import gpiozero" 2>/dev/null || missing_deps+=("gpiozero")
     python3 -c "import pigpio" 2>/dev/null || missing_deps+=("pigpio")
-<<<<<<< HEAD
-=======
     python3 -c "import smbus" 2>/dev/null || missing_deps+=("smbus")
     python3 -c "import rpi_hardware_pwm" 2>/dev/null || missing_deps+=("rpi_hardware_pwm")
->>>>>>> 40885bf (Initial commit)
     
     if [ ${#missing_deps[@]} -eq 0 ]; then
         echo -e "${GREEN}✓ All Python dependencies are available${NC}"
         return 0
     else
         echo -e "${YELLOW}⚠ Some Python dependencies may be missing: ${missing_deps[*]}${NC}"
-<<<<<<< HEAD
-        echo -e "${YELLOW}The server will attempt to start anyway...${NC}"
-        return 0
-=======
         return 1
->>>>>>> 40885bf (Initial commit)
     fi
 }
 
@@ -210,14 +199,11 @@ check_server_files() {
         return 1
     fi
     
-<<<<<<< HEAD
-=======
     if [ ! -f "mpu6050.py" ]; then
         echo -e "${RED}✗ mpu6050.py not found${NC}"
         return 1
     fi
     
->>>>>>> 40885bf (Initial commit)
     echo -e "${GREEN}✓ All required server files found${NC}"
     return 0
 }
@@ -233,9 +219,6 @@ main() {
         exit 1
     fi
     
-<<<<<<< HEAD
-    # Step 2: Start pigpiod
-=======
     # Step 2: Check and install dependencies
     if ! command_exists pigpiod || ! check_python_deps; then
         echo -e "${YELLOW}Dependencies missing. Attempting to install...${NC}"
@@ -243,7 +226,6 @@ main() {
     fi
 
     # Step 3: Start pigpiod
->>>>>>> 40885bf (Initial commit)
     if ! start_pigpiod; then
         echo -e "${YELLOW}⚠ Warning: pigpiod may not be running. Servos may use software PWM (jittery).${NC}"
         echo -e "${YELLOW}Continuing anyway...${NC}"
@@ -286,4 +268,3 @@ trap cleanup SIGINT SIGTERM
 
 # Run main function
 main
-

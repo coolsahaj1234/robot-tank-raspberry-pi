@@ -216,9 +216,6 @@ def test_Servo():
         # if servo.pcb_version == 2:
         #     servo.setServoAngle('2', 90, force_update=True)     # Set servo 2 to 90 degrees
         print("\nEnd of program")          # Print an end message
-<<<<<<< HEAD
-=======
-        
 def test_IMU():
     from mpu6050 import MPU6050
     import time
@@ -233,7 +230,6 @@ def test_IMU():
             time.sleep(0.5)
     except KeyboardInterrupt:
         print("\nEnd of program")
->>>>>>> 40885bf (Initial commit)
 
 def test_Camera():
     import time
@@ -300,10 +296,7 @@ if __name__ == '__main__':
         test_Infrared()                                          # Run the infrared test
     elif sys.argv[1] == 'Servo' or sys.argv[1] == 'servo':
         test_Servo()                                             # Run the servo test
-<<<<<<< HEAD
-=======
     elif sys.argv[1] == 'IMU' or sys.argv[1] == 'imu':
         test_IMU()                                               # Run the IMU test
->>>>>>> 40885bf (Initial commit)
     elif sys.argv[1] == 'Camera' or sys.argv[1] == 'camera':
         test_Camera()                                            # Run the camera test

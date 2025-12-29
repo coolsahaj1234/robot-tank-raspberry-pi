@@ -44,3 +44,9 @@ Thumbs.db
 *.mp4
 .lgd-nfy0
 params.json
+
+# Node & Build
+node_modules/
+.cache/
+*.log
+Application/

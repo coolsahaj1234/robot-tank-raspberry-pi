@@ -6,22 +6,14 @@ const MODES = [
   { value: '1', label: 'Move' },
   { value: '2', label: 'Sonar' },
   { value: '3', label: 'Infrared' },
-<<<<<<< HEAD
-  { value: '4', label: 'AI Auto' }
-=======
   { value: '4', label: 'AI Auto' },
   { value: '5', label: '🎅 Santa' },
   { value: '6', label: '🅿️ AutoPark' }
->>>>>>> 40885bf (Initial commit)
 ]
 
 export default function ModeSelector({ connected, onSendCommand, onModeChange }) {
   const [selectedMode, setSelectedMode] = useState('0')
-<<<<<<< HEAD
-  
-=======
 
->>>>>>> 40885bf (Initial commit)
   const handleModeChange = (mode) => {
     setSelectedMode(mode)
     onSendCommand(`CMD_MODE#${mode}`)
@@ -48,4 +40,3 @@ export default function ModeSelector({ connected, onSendCommand, onModeChange })
     </div>
   )
 }
-

@@ -6,9 +6,6 @@ class Command:
         self.CMD_ACTION = "CMD_ACTION"
         self.CMD_SONIC = "CMD_SONIC"
         self.CMD_MODE ="CMD_MODE"
-<<<<<<< HEAD
-=======
         self.CMD_IMU = "CMD_IMU"
->>>>>>> 40885bf (Initial commit)
 
 

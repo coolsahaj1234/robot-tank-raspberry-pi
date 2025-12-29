@@ -245,11 +245,6 @@ class HeadlessServer:
                     distance_back = self.car.sonic_back.get_distance()
                     if self.tcp_server.get_cmd_server_busy() == False:
                         self.tcp_server.set_cmd_server_busy(True)
-<<<<<<< HEAD
-                        self.tcp_server.sendDataToCmdClinet(f"CMD_SONIC#{distance_front:.2f}#{distance_back:.2f}")
-                        self.tcp_server.set_cmd_server_busy(False)
-                    time.sleep(1)
-=======
                         self.tcp_server.sendDataToCmdClinet(f"CMD_SONIC#{distance_front:.2f}#{distance_back:.2f}\n")
                         # Read and send IMU data if available
                         if self.car.imu:
@@ -263,7 +258,6 @@ class HeadlessServer:
                                 print(f"Error reading IMU: {e}")
                         self.tcp_server.set_cmd_server_busy(False)
                     time.sleep(0.2)
->>>>>>> 40885bf (Initial commit)
                 elif self.car_mode == 2:
                     # Ultrasonic obstacle avoidance mode
                     self.car.mode_ultrasonic()
@@ -271,9 +265,6 @@ class HeadlessServer:
                     distance_back = self.car.sonic_back.get_distance()
                     if self.tcp_server.get_cmd_server_busy() == False:
                         self.tcp_server.set_cmd_server_busy(True)
-<<<<<<< HEAD
-                        self.tcp_server.sendDataToCmdClinet(f"CMD_SONIC#{distance_front:.2f}#{distance_back:.2f}")
-=======
                         self.tcp_server.sendDataToCmdClinet(f"CMD_SONIC#{distance_front:.2f}#{distance_back:.2f}\n")
                         # Read and send IMU data if available
                         if self.car.imu:
@@ -285,7 +276,6 @@ class HeadlessServer:
                                 ))
                             except Exception as e:
                                 print(f"Error reading IMU: {e}")
->>>>>>> 40885bf (Initial commit)
                         self.tcp_server.set_cmd_server_busy(False)
                 elif self.car_mode == 3:
                     # Infrared line following mode

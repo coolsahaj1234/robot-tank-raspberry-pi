@@ -37,10 +37,6 @@
 }
 
 @keyframes pulse {
-<<<<<<< HEAD
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-=======
 
   0%,
   100% {
@@ -50,7 +46,6 @@
   50% {
     transform: scale(1.05);
   }
->>>>>>> 40885bf (Initial commit)
 }
 
 .logo h1 {
@@ -163,10 +158,6 @@
 }
 
 @keyframes spin {
-<<<<<<< HEAD
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-=======
   from {
     transform: rotate(0deg);
   }
@@ -174,7 +165,6 @@
   to {
     transform: rotate(360deg);
   }
->>>>>>> 40885bf (Initial commit)
 }
 
 .settings-btn {
@@ -266,29 +256,19 @@
   .dashboard-content {
     grid-template-columns: 1fr;
   }
-<<<<<<< HEAD
-  
-=======
 
->>>>>>> 40885bf (Initial commit)
   .dashboard-header {
     flex-direction: column;
     gap: 1rem;
     align-items: flex-start;
   }
-<<<<<<< HEAD
-  
-=======
 
->>>>>>> 40885bf (Initial commit)
   .header-right {
     width: 100%;
     justify-content: space-between;
   }
 }
 
-<<<<<<< HEAD
-=======
 /* Santa Mode Theme */
 .dashboard.santa-mode {
   border: 4px solid #c41e3a;
@@ -466,4 +446,3 @@
 .modal-btn.cancel:hover {
   background: rgba(255, 255, 255, 0.2);
 }
->>>>>>> 40885bf (Initial commit)

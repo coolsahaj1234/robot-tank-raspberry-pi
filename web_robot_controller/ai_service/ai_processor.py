@@ -13,19 +13,27 @@ import time
 from typing import Dict, Tuple, Optional, List, Any
 from collections import deque
 import logging
-<<<<<<< HEAD
-=======
 from ultralytics import YOLO
 import torch
-# Fix for PyTorch 2.6+ security changes
+import logging
+import sys
+
+# =============================================================================
+# PyTorch 2.6+ Security Fix - Bypassing weights_only for YOLOv8
+# =============================================================================
 try:
-    import ultralytics.nn.tasks
-    torch.serialization.add_safe_globals([ultralytics.nn.tasks.DetectionModel])
+    # Ultralytics/YOLOv8 often fails with weights_only=True on PyTorch 2.6
+    # We monkeypatch torch.load to default to weights_only=False
+    _original_torch_load = torch.load
+    def _patched_torch_load(*args, **kwargs):
+        if 'weights_only' not in kwargs:
+            kwargs['weights_only'] = False
+        return _original_torch_load(*args, **kwargs)
+    torch.load = _patched_torch_load
 except Exception as e:
-    logging.warning(f"Could not add safe globals: {e}")
+    print(f"⚠️ Warning: Could not patch torch.load: {e}", file=sys.stderr)
 
 import os
->>>>>>> 40885bf (Initial commit)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -65,18 +73,6 @@ class AIVideoProcessor:
         self.thinking_log = deque(maxlen=15)
         self.log_counter = 0
         # Navigation state machine
-<<<<<<< HEAD
-        # States: 'analyzing', 'moving_forward', 'turning_left', 'turning_right', 'stopped'
-        self.navigation_state = 'analyzing'
-        self.previous_state = None
-        self.state_start_time = time.time()
-
-        # Movement chunk timing (in seconds)
-        self.MOVE_CHUNK_DURATION = 0.8    # Move forward for 0.8 seconds
-        self.TURN_CHUNK_DURATION = 1.0    # Turn for 1.0 second (longer for effective turn)
-        self.BACKUP_DURATION = 0.8        # Backup for 0.8 seconds
-        self.ANALYZE_DURATION = 0.6       # Analyze for 0.6 seconds before deciding
-=======
         # States: 'analyzing', 'moving_forward', 'turning_left', 'turning_right', 'stopped', 'santa_approach', 'tracking_hat'
         self.navigation_state = 'analyzing'
         self.previous_state = None
@@ -98,7 +94,6 @@ class AIVideoProcessor:
         self.BACKUP_DURATION = 0.6        # Short backup
         self.ANALYZE_DURATION = 0.4       # Longer pause to think before acting
         self.SCAN_DURATION = 0.5          # Duration for each scan side (left/right)
->>>>>>> 40885bf (Initial commit)
 
         # Turn tracking
         self.last_turn_direction = 'right'
@@ -111,21 +106,6 @@ class AIVideoProcessor:
         self.frame_count = 0
         self.frames_in_state = 0
 
-<<<<<<< HEAD
-        # Stuck detection - VISUAL based
-        self.movement_history = deque(maxlen=10)
-        self.stuck_counter = 0
-        self.stuck_threshold = 1.5       # If frame diff < this, consider stuck
-        self.stuck_frames_needed = 5     # Need 5 consecutive stuck frames
-        self.is_currently_stuck = False
-        self.last_action = 'stop'        # Track what robot should be doing
-
-        # Speed control - CAREFUL speeds with STRONG turns
-        self.forward_speed = 45       # SLOWER forward (was 55)
-        self.slow_forward_speed = 35  # Very slow when caution
-        self.turn_speed = 90          # STRONG turn speed (was 75) - needs power!
-        self.backup_speed = 50        # Backup speed
-=======
         # Advanced Object Detection (YOLOv8)
         try:
             # Use nano model for performance
@@ -149,7 +129,6 @@ class AIVideoProcessor:
         self.turn_speed = 70              # 70% - works on carpet
         self.gentle_turn_speed = 55       # 55% - gentle but functional
         self.backup_speed = 55            # 55% - reliable backup
->>>>>>> 40885bf (Initial commit)
 
         # Ultrasonic history for noise filtering (front and back)
         self.ultrasonic_history = deque(maxlen=5)
@@ -161,30 +140,16 @@ class AIVideoProcessor:
         self.path_history = deque(maxlen=100)
         self.obstacle_map = []
 
-<<<<<<< HEAD
-        # Distance thresholds (cm) - MORE CONSERVATIVE
-        self.TOO_CLOSE_DISTANCE = 15   # WAY too close - must backup
-        self.DANGER_DISTANCE = 30      # Danger - stop and turn/backup
-        self.CAUTION_DISTANCE = 50     # Slow down
-        self.SAFE_DISTANCE = 80        # Safe to move forward
-=======
         # Distance thresholds (in cm) - CONSERVATIVE for safety
         self.TOO_CLOSE_DISTANCE = 25      # Increased from 20cm - stop earlier
         self.DANGER_DISTANCE = 45         # Increased from 35cm - more caution
         self.CAUTION_DISTANCE = 65        # Increased from 50cm - slow down earlier  
         self.SAFE_DISTANCE = 90           # Increased from 70cm - need more space
->>>>>>> 40885bf (Initial commit)
 
         # Lane keeping
         self.previous_lanes = None
         self.lane_history = deque(maxlen=10)
 
-<<<<<<< HEAD
-        # Object detection settings
-        self.min_object_area = 500  # Minimum contour area to consider
-        self.detected_objects = []  # Store detected objects for overlay
-
-=======
         # Exploration memory and bias
         self.exploration_bias = 0         # Positive = right, Negative = left
         self.stagnation_counter = 0        # Count frames without meaningful progress
@@ -206,7 +171,6 @@ class AIVideoProcessor:
         self.last_capture_time = 0
         self.capture_cooldown = 10.0 # Seconds between captures
         
->>>>>>> 40885bf (Initial commit)
         logger.info("🤖 Deliberate Navigation AI initialized")
 
     def log_thought(self, category: str, message: str, level: str = 'info'):
@@ -328,8 +292,6 @@ class AIVideoProcessor:
         elif not left_clear and not right_clear and action not in ['backup', 'turn_left', 'turn_right']:
             narration += " Both sides look tight."
 
-<<<<<<< HEAD
-=======
         # ONLY add Santa narration in Santa Mode
         if self.santa_mode_active:
             if self.santa_hat_detected:
@@ -346,7 +308,6 @@ class AIVideoProcessor:
             else:
                 narration = "Sleigh bells ring, are you listening? I'm scouting for the tree! 🎅"
         
->>>>>>> 40885bf (Initial commit)
         return narration
 
     def get_thinking_log(self) -> list:
@@ -355,89 +316,6 @@ class AIVideoProcessor:
 
     def detect_objects(self, image: np.ndarray) -> List[Dict]:
         """
-<<<<<<< HEAD
-        Detect and classify objects in the image using contour analysis.
-        Returns list of detected objects with bounding boxes and classifications.
-        """
-        height, width = image.shape[:2]
-        detected = []
-
-        # Convert to grayscale
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-
-        # Apply Gaussian blur to reduce noise
-        blurred = cv2.GaussianBlur(gray, (5, 5), 0)
-
-        # Use adaptive thresholding for better edge detection
-        thresh = cv2.adaptiveThreshold(
-            blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-            cv2.THRESH_BINARY_INV, 11, 2
-        )
-
-        # Find edges using Canny
-        edges = cv2.Canny(blurred, 50, 150)
-
-        # Combine threshold and edges
-        combined = cv2.bitwise_or(thresh, edges)
-
-        # Dilate to connect nearby edges
-        kernel = np.ones((3, 3), np.uint8)
-        dilated = cv2.dilate(combined, kernel, iterations=2)
-
-        # Find contours
-        contours, _ = cv2.findContours(dilated, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-        for contour in contours:
-            area = cv2.contourArea(contour)
-            if area < self.min_object_area:
-                continue
-
-            # Get bounding box
-            x, y, w, h = cv2.boundingRect(contour)
-
-            # Skip if too small or too large (probably noise or background)
-            if w < 30 or h < 30 or w > width * 0.9 or h > height * 0.9:
-                continue
-
-            # Calculate aspect ratio and other properties
-            aspect_ratio = float(w) / h
-            extent = area / (w * h)  # How much of bounding box is filled
-            hull = cv2.convexHull(contour)
-            hull_area = cv2.contourArea(hull)
-            solidity = area / hull_area if hull_area > 0 else 0
-
-            # Approximate contour to polygon
-            epsilon = 0.02 * cv2.arcLength(contour, True)
-            approx = cv2.approxPolyDP(contour, epsilon, True)
-            vertices = len(approx)
-
-            # Calculate center position
-            cx = x + w // 2
-            cy = y + h // 2
-
-            # Determine position in frame (left, center, right)
-            if cx < width // 3:
-                position = 'left'
-            elif cx > 2 * width // 3:
-                position = 'right'
-            else:
-                position = 'center'
-
-            # Classify object based on properties
-            obj_type, confidence, color = self._classify_object(
-                area, aspect_ratio, extent, solidity, vertices, w, h, cy, height
-            )
-
-            # Calculate distance estimate based on size and position
-            # Objects lower in frame are closer
-            vertical_pos = cy / height  # 0 = top, 1 = bottom
-            size_factor = (w * h) / (width * height)
-            distance_estimate = 'far'
-            if vertical_pos > 0.6 or size_factor > 0.1:
-                distance_estimate = 'close'
-            elif vertical_pos > 0.4 or size_factor > 0.05:
-                distance_estimate = 'medium'
-=======
         Detect and classify objects in the image using YOLOv8 and contour analysis.
         Returns list of detected objects with bounding boxes and classifications.
         """
@@ -587,7 +465,6 @@ class AIVideoProcessor:
             dist_est = 'far'
             if v_pos > 0.6 or s_fact > 0.1: dist_est = 'close'
             elif v_pos > 0.4 or s_fact > 0.05: dist_est = 'medium'
->>>>>>> 40885bf (Initial commit)
 
             detected.append({
                 'type': obj_type,
@@ -595,61 +472,20 @@ class AIVideoProcessor:
                 'bbox': [x, y, w, h],
                 'center': [cx, cy],
                 'position': position,
-<<<<<<< HEAD
-                'distance': distance_estimate,
-=======
                 'distance': dist_est,
->>>>>>> 40885bf (Initial commit)
                 'area': area,
                 'color': color
             })
 
-<<<<<<< HEAD
-        # Sort by area (largest first) and limit to top 5
-        detected.sort(key=lambda x: x['area'], reverse=True)
-        self.detected_objects = detected[:5]
-
-=======
         # Sort by area (largest first) and limit to top 10
         detected.sort(key=lambda x: x.get('area', 0), reverse=True)
         self.detected_objects = detected[:10] # Track more objects now that it's stable
->>>>>>> 40885bf (Initial commit)
         return self.detected_objects
 
     def _classify_object(self, area, aspect_ratio, extent, solidity,
                          vertices, w, h, cy, img_height) -> Tuple[str, float, Tuple[int, int, int]]:
         """
         Classify detected object based on shape properties.
-<<<<<<< HEAD
-        Returns (type_name, confidence, color_bgr)
-        """
-        # Wall/Large obstacle - very wide, spans most of width
-        if aspect_ratio > 2.5 and extent > 0.5:
-            return ('WALL', 0.8, (0, 0, 255))  # Red
-
-        # Box/Furniture - roughly square, high solidity
-        if 0.7 < aspect_ratio < 1.4 and solidity > 0.8 and extent > 0.6:
-            return ('BOX', 0.75, (255, 128, 0))  # Orange
-
-        # Tall object (person, pole, furniture)
-        if aspect_ratio < 0.6 and h > w * 1.5:
-            if solidity > 0.6:
-                return ('PERSON', 0.6, (255, 0, 255))  # Magenta
-            else:
-                return ('POLE', 0.65, (128, 128, 255))  # Light blue
-
-        # Round object (ball, wheel)
-        if vertices > 6 and 0.7 < aspect_ratio < 1.3 and solidity > 0.75:
-            return ('ROUND', 0.7, (0, 255, 255))  # Yellow
-
-        # Wide obstacle (table, bench)
-        if aspect_ratio > 1.5 and solidity > 0.5:
-            return ('WIDE OBJ', 0.65, (0, 165, 255))  # Orange
-
-        # Small object
-        if area < 2000:
-            return ('SMALL', 0.5, (128, 255, 128))  # Light green
-=======
         Specifically tuned for Windows, Doors, and Furniture.
         """
         # --- DOORS ---
@@ -678,13 +514,10 @@ class AIVideoProcessor:
         # Very large, upright object, usually tapered (not a wall)
         if area > 15000 and 0.5 < aspect_ratio < 1.0 and solidity > 0.6:
             return ('CHRISTMAS TREE', 0.9, (0, 100, 0)) # Dark Green
->>>>>>> 40885bf (Initial commit)
 
         # Generic obstacle
         return ('OBSTACLE', 0.6, (0, 200, 200))  # Cyan
 
-<<<<<<< HEAD
-=======
     def detect_festive_colors(self, image: np.ndarray) -> Dict[str, bool]:
         """Detect presence of red and green colors for Santa Mode"""
         if image is None:
@@ -850,7 +683,6 @@ class AIVideoProcessor:
             logger.error(f"Error saving image: {e}")
             return False
 
->>>>>>> 40885bf (Initial commit)
     def base64_to_image(self, base64_string: str) -> np.ndarray:
         """Convert base64 string to OpenCV image"""
         try:
@@ -951,24 +783,14 @@ class AIVideoProcessor:
         moving_actions = ['forward', 'slow_forward', 'turn_left', 'turn_right']
 
         if current_action not in moving_actions:
-<<<<<<< HEAD
-            # Not supposed to be moving, reset stuck counter
             self.stuck_counter = 0
-            self.is_currently_stuck = False
-=======
-            self.stuck_counter = 0
->>>>>>> 40885bf (Initial commit)
             return False
 
         if len(self.movement_history) < 3:
             return False
 
         # Get recent frame differences
-<<<<<<< HEAD
-        recent = list(self.movement_history)[-5:]
-=======
         recent = list(self.movement_history)[-self.stuck_frames_needed:]
->>>>>>> 40885bf (Initial commit)
         avg_movement = np.mean(recent)
 
         # If image isn't changing much while we should be moving → stuck!
@@ -976,27 +798,16 @@ class AIVideoProcessor:
             self.stuck_counter += 1
             if self.stuck_counter >= self.stuck_frames_needed:
                 if not self.is_currently_stuck:
-<<<<<<< HEAD
-                    logger.warning(f"🚨 STUCK DETECTED! Frame diff={avg_movement:.2f} while action={current_action}")
-                self.is_currently_stuck = True
-                return True
-        else:
-            # Image is changing, not stuck
-            self.stuck_counter = max(0, self.stuck_counter - 2)
-=======
                     self.log_thought('STUCK', f'Not moving (diff={avg_movement:.1f})', 'danger')
                 self.is_currently_stuck = True
                 return True
         else:
             self.stuck_counter = max(0, self.stuck_counter - 1)
->>>>>>> 40885bf (Initial commit)
             if self.stuck_counter == 0:
                 self.is_currently_stuck = False
 
         return self.is_currently_stuck
 
-<<<<<<< HEAD
-=======
     def check_stagnation(self) -> bool:
         """
         Check if the robot is stagnant (not making progress over time)
@@ -1023,7 +834,6 @@ class AIVideoProcessor:
             
         return False
 
->>>>>>> 40885bf (Initial commit)
     def update_position(self, speed: float, turn: str, dt: float = 0.1):
         """Update estimated position for movement tracking visualization"""
         # Simple dead reckoning for visualization
@@ -1604,16 +1414,6 @@ class AIVideoProcessor:
 
         # Blend overlay with original (semi-transparent gridlines)
         result = cv2.addWeighted(image, 0.7, overlay, 0.3, 0)
-<<<<<<< HEAD
-
-        return result
-
-    def process_frame(self, base64_frame: str, ultrasonic_distance: float = None,
-                      ultrasonic_distance_back: float = None, scan_direction: str = None) -> Dict:
-        """
-        Process a single video frame with deliberate navigation.
-        Uses both front and back ultrasonic sensors.
-=======
         
         # CLEAN UI - Distance sensors at top-left (ALWAYS VISIBLE)
         cv2.putText(result, f"Front: {front_distance:.0f}cm", (10, 25),
@@ -1651,7 +1451,6 @@ class AIVideoProcessor:
             ultrasonic_distance_back: Rear ultrasonic distance in cm
             scan_direction: Optional scan direction
             imu_data: IMU sensor data (accelerometer, gyroscope)
->>>>>>> 40885bf (Initial commit)
         """
         self.frame_count += 1
 
@@ -1665,16 +1464,6 @@ class AIVideoProcessor:
         if image is None:
             return self._generate_default_response(ultrasonic_distance, back_distance)
 
-<<<<<<< HEAD
-        # Detect frame change (for stuck detection)
-        frame_change = self.detect_movement(image)
-
-        # Process obstacle detection (simplified - no lane detection clutter)
-        obstacle_data = self._detect_obstacles_simple(image, front_distance)
-
-        # Detect and classify objects in the frame
-        detected_objects = self.detect_objects(image)
-=======
         # Store IMU data for navigation decisions
         self.imu_data = imu_data if imu_data else {}
         
@@ -1837,7 +1626,6 @@ class AIVideoProcessor:
                 self.log_thought('VISION', f'Override: High-conf obstacle detected!', 'warning')
             else:
                 self.log_thought('EXECUTION', 'Ultrasonic-primary navigation', 'info')
->>>>>>> 40885bf (Initial commit)
 
         # Log detected objects if any close ones found
         close_objects = [o for o in detected_objects if o['distance'] == 'close']
@@ -1846,11 +1634,7 @@ class AIVideoProcessor:
             self.log_thought('DETECT', f'Close objects: {obj_summary}', 'warning')
 
         # Generate navigation command
-<<<<<<< HEAD
-        nav_command = self._generate_deliberate_command({}, obstacle_data, front_distance, frame_change)
-=======
         nav_command = self._generate_deliberate_command(detected_objects, obstacle_data, front_distance, frame_change)
->>>>>>> 40885bf (Initial commit)
 
         # Create CLEAN overlay with object detection (not cluttered)
         clean_overlay = self._draw_clean_overlay(image, nav_command, front_distance, back_distance)
@@ -1864,13 +1648,10 @@ class AIVideoProcessor:
         # Generate natural language narration
         narration = self.generate_narration(nav_command, detected_objects, front_distance, back_distance)
 
-<<<<<<< HEAD
-=======
         # Override action for Santa spotted pulse feedback
         if self.santa_feedback_active:
             nav_command['action'] = 'santa_spotted'
 
->>>>>>> 40885bf (Initial commit)
         # Build response with both front and back distances
         response = {
             'processed_frame': processed_base64,
@@ -1925,11 +1706,7 @@ class AIVideoProcessor:
 
     def _generate_deliberate_command(
         self,
-<<<<<<< HEAD
-        lane_data: Dict,
-=======
         detected_objects: List[Dict],
->>>>>>> 40885bf (Initial commit)
         obstacle_data: Dict,
         ultrasonic_distance: float,
         frame_change: float = 10.0
@@ -1978,22 +1755,13 @@ class AIVideoProcessor:
         # If robot is stuck (image not changing while moving), BACKUP!
         # ============================================================
         if is_stuck and self.navigation_state not in ['backing_up', 'analyzing', 'stopped']:
-<<<<<<< HEAD
-            self.log_thought('STUCK', f'Frame diff={frame_change:.1f} - not moving! Backing up', 'danger')
-            logger.warning(f"🚨 STUCK! Image not changing (diff={frame_change:.2f}) - BACKING UP!")
-            self._change_state('backing_up')
-            self.stuck_counter = 0  # Reset for next detection
-=======
             self.log_thought('STUCK', f'Physical obstruction - Backing up!', 'danger')
             self._change_state('backing_up')
             self.stuck_counter = 0 
->>>>>>> 40885bf (Initial commit)
             command['speed'] = self.backup_speed
             command['action'] = 'backup'
             command['is_stuck'] = True
             self.last_action = 'backup'
-<<<<<<< HEAD
-=======
             
             # When stuck, flip the exploration bias to try a completely different direction
             self.exploration_bias = -self.exploration_bias
@@ -2004,7 +1772,6 @@ class AIVideoProcessor:
             self.log_thought('STAGNANT', 'Wandering in circles? Forcing rotation.', 'warning')
             self.stagnation_counter = 0
             self._change_state('turning_right') # Force a major course correction
->>>>>>> 40885bf (Initial commit)
             return command
 
         # ============================================================
@@ -2038,11 +1805,6 @@ class AIVideoProcessor:
 
             return command  # Don't interrupt backup!
 
-<<<<<<< HEAD
-        # STATE: TURNING LEFT - committed, strong power
-        if self.navigation_state == 'turning_left':
-            command['speed'] = self.turn_speed  # 90% power!
-=======
         # TARGET LOCK-ON LOGIC
         # If we see a hat, shorten the decision cycle for frequent corrections
         is_tracking = self.santa_hat_detected or (self.santa_mode_active and self.christmas_tree_detected)
@@ -2125,30 +1887,19 @@ class AIVideoProcessor:
             #         self._change_state('backing_up')
                     
             command['speed'] = self.turn_speed  # 70% power
->>>>>>> 40885bf (Initial commit)
             command['turn'] = 'left'
             command['action'] = 'turn_left'
             command['led_left'] = True
             self.last_turn_direction = 'left'
             self.last_action = 'turn_left'
 
-<<<<<<< HEAD
-            if time_in_state >= self.TURN_CHUNK_DURATION:
-                logger.info(f"↩️ Left turn complete ({self.TURN_CHUNK_DURATION}s)")
-=======
             if time_in_state >= current_turn_duration:
                 logger.info(f"↩️ Left turn complete")
->>>>>>> 40885bf (Initial commit)
                 self._change_state('analyzing')
                 self.consecutive_turns += 1
 
             return command  # Don't interrupt turn!
 
-<<<<<<< HEAD
-        # STATE: TURNING RIGHT - committed, strong power
-        if self.navigation_state == 'turning_right':
-            command['speed'] = self.turn_speed  # 90% power!
-=======
         # STATE: TURNING RIGHT - committed, smoother power
         if self.navigation_state == 'turning_right':
             # DISABLED: Stuck spinning detection (was causing disconnections)
@@ -2158,34 +1909,19 @@ class AIVideoProcessor:
             #         self._change_state('backing_up')
                     
             command['speed'] = self.turn_speed
->>>>>>> 40885bf (Initial commit)
             command['turn'] = 'right'
             command['action'] = 'turn_right'
             command['led_right'] = True
             self.last_turn_direction = 'right'
             self.last_action = 'turn_right'
 
-<<<<<<< HEAD
-            if time_in_state >= self.TURN_CHUNK_DURATION:
-                logger.info(f"↪️ Right turn complete ({self.TURN_CHUNK_DURATION}s)")
-=======
             if time_in_state >= current_turn_duration:
                 logger.info(f"↪️ Right turn complete")
->>>>>>> 40885bf (Initial commit)
                 self._change_state('analyzing')
                 self.consecutive_turns += 1
 
             return command  # Don't interrupt turn!
 
-<<<<<<< HEAD
-        # ============================================================
-        # DANGER CHECKS (only when not in committed action)
-        # ============================================================
-
-        # TOO CLOSE - Must backup!
-        if filtered_distance < self.TOO_CLOSE_DISTANCE:
-            self.log_thought('DANGER', f'TOO CLOSE! {filtered_distance:.0f}cm < {self.TOO_CLOSE_DISTANCE}cm', 'danger')
-=======
         # STATE: AUTO PARKING
         if self.navigation_state == 'auto_parking':
             # 1. Safety Check - Rear
@@ -2256,19 +1992,12 @@ class AIVideoProcessor:
                 
             # CRITICAL: Always backup when too close, even when tracking
             self.log_thought('DANGER', f'TOO CLOSE! {filtered_distance:.0f}cm < {too_close_threshold}cm', 'danger')
->>>>>>> 40885bf (Initial commit)
             logger.warning(f"🚨 TOO CLOSE! {filtered_distance:.0f}cm - BACKING UP!")
             self._change_state('backing_up')
             command['speed'] = self.backup_speed
             command['action'] = 'backup'
             return command
 
-<<<<<<< HEAD
-        # DANGER ZONE - Need to stop and decide
-        if filtered_distance < self.DANGER_DISTANCE:
-            # Check if we have ANY clear direction
-            if not left_clear and not right_clear:
-=======
         # ============================================================
         # SANTA PICKUP CHECK - Only if we see the hat, it's center, and it's close
         # ============================================================
@@ -2287,7 +2016,6 @@ class AIVideoProcessor:
         if filtered_distance < danger_threshold:
             # Check if we have ANY clear direction
             if not left_clear and not right_clear and not santa_override:
->>>>>>> 40885bf (Initial commit)
                 # ALL BLOCKED - Must backup!
                 self.log_thought('BLOCKED', f'All sides blocked at {filtered_distance:.0f}cm → BACKUP', 'danger')
                 logger.warning(f"🚨 ALL BLOCKED at {filtered_distance:.0f}cm - BACKING UP!")
@@ -2307,30 +2035,11 @@ class AIVideoProcessor:
             command['led_left'] = True
             command['led_right'] = True
 
-<<<<<<< HEAD
-            # After brief stop, turn to clear side
-            if time_in_state > 0.3:
-                if left_clear and not right_clear:
-                    self.log_thought('TURN', 'Right blocked → Turning LEFT', 'action')
-                    logger.info(f"↩️ Turning LEFT (right blocked)")
-                    self._change_state('turning_left')
-                elif right_clear and not left_clear:
-                    self.log_thought('TURN', 'Left blocked → Turning RIGHT', 'action')
-                    logger.info(f"↪️ Turning RIGHT (left blocked)")
-                    self._change_state('turning_right')
-                else:
-                    # Both clear - pick one (alternate)
-                    new_dir = 'turning_left' if self.last_turn_direction == 'right' else 'turning_right'
-                    self.log_thought('TURN', f'Both clear, alternating → {new_dir.split("_")[1].upper()}', 'action')
-                    logger.info(f"🔄 Turning {new_dir.split('_')[1].upper()} (alternating)")
-                    self._change_state(new_dir)
-=======
             # After brief stop, enter SCANNING sequence
             if time_in_state > 0.3:
                 self.log_thought('SCAN', 'Entering Scan-and-Plan sequence', 'info')
                 self.scan_results = {'left': 100.0, 'right': 100.0}
                 self._change_state('scanning_left')
->>>>>>> 40885bf (Initial commit)
             return command
 
         # ============================================================
@@ -2344,9 +2053,6 @@ class AIVideoProcessor:
             self.last_action = 'analyzing'
 
             if time_in_state >= self.ANALYZE_DURATION:
-<<<<<<< HEAD
-                if filtered_distance >= self.SAFE_DISTANCE:
-=======
                 # 1. SPECIAL MODES PRIORITY
                 if self.auto_park_mode:
                     # Auto Park Mode: If clear or safe, start parking
@@ -2357,26 +2063,11 @@ class AIVideoProcessor:
                         self.log_thought('PARK', f'Wall detected at {filtered_distance:.0f}cm - Approach', 'action')
                         self._change_state('auto_parking')
                 elif filtered_distance >= self.SAFE_DISTANCE:
->>>>>>> 40885bf (Initial commit)
                     self.log_thought('SCAN', f'Clear path at {filtered_distance:.0f}cm → FORWARD', 'info')
                     logger.info(f"✅ Clear at {filtered_distance:.0f}cm - moving forward")
                     self._change_state('moving_forward')
                     self.consecutive_turns = 0
                     self.backup_count = 0
-<<<<<<< HEAD
-                elif filtered_distance >= self.CAUTION_DISTANCE:
-                    self.log_thought('SCAN', f'Caution zone {filtered_distance:.0f}cm → SLOW', 'warning')
-                    logger.info(f"⚠️ Caution at {filtered_distance:.0f}cm - slow forward")
-                    self._change_state('slow_forward')
-                else:
-                    # Need to turn
-                    self.log_thought('SCAN', f'Blocked at {filtered_distance:.0f}cm - need turn', 'warning')
-                    if left_clear and not right_clear:
-                        self._change_state('turning_left')
-                    elif right_clear:
-                        self._change_state('turning_right')
-                    else:
-=======
                 elif filtered_distance >= self.CAUTION_DISTANCE or santa_override:
                     if self.santa_hat_detected:
                          # Track hat in ALL AI modes
@@ -2434,20 +2125,15 @@ class AIVideoProcessor:
                         self._change_state('turning_right')
                     else:
                         # Both clear but blocked ahead - pick a direction
->>>>>>> 40885bf (Initial commit)
                         new_dir = 'turning_left' if self.last_turn_direction == 'right' else 'turning_right'
                         self._change_state(new_dir)
             return command
 
         # STATE: MOVING FORWARD (normal speed)
         if self.navigation_state == 'moving_forward':
-<<<<<<< HEAD
-            if filtered_distance < self.CAUTION_DISTANCE:
-=======
             # Preserve speed if tracking a hat/tree even in caution zone
             caution_limit = 20 if santa_override else self.CAUTION_DISTANCE
             if filtered_distance < caution_limit:
->>>>>>> 40885bf (Initial commit)
                 logger.info(f"⚠️ Obstacle approaching at {filtered_distance:.0f}cm - slowing")
                 self._change_state('slow_forward')
                 command['speed'] = self.slow_forward_speed
@@ -2459,10 +2145,6 @@ class AIVideoProcessor:
             command['action'] = 'forward'
             self.last_action = 'forward'
 
-<<<<<<< HEAD
-            if time_in_state >= self.MOVE_CHUNK_DURATION:
-                self._change_state('analyzing')
-=======
             if time_in_state >= current_chunk_duration:
                 # SANTA MODE CHECK
                 if self.santa_mode_active and self.christmas_tree_detected:
@@ -2486,7 +2168,6 @@ class AIVideoProcessor:
                         self._change_state('backing_up')
                     else:
                         self._change_state('analyzing')
->>>>>>> 40885bf (Initial commit)
 
             return command
 
@@ -2505,9 +2186,6 @@ class AIVideoProcessor:
             self.last_action = 'slow_forward'
 
             if time_in_state >= self.MOVE_CHUNK_DURATION:
-<<<<<<< HEAD
-                self._change_state('analyzing')
-=======
                 # Also retreat from slow forward occasionally
                 import random
                 if random.random() < 0.1:
@@ -2544,7 +2222,6 @@ class AIVideoProcessor:
                 logger.info(f"↪️ Gentle right turn complete")
                 self._change_state('analyzing')
                 self.consecutive_turns += 1
->>>>>>> 40885bf (Initial commit)
 
             return command
 
@@ -2559,8 +2236,6 @@ class AIVideoProcessor:
 
             return command
 
-<<<<<<< HEAD
-=======
         # STATE: SANTA PICKUP
         if self.navigation_state == 'santa_pickup':
             command['speed'] = 0
@@ -2584,7 +2259,6 @@ class AIVideoProcessor:
                 self._change_state('analyzing')
             return command
 
->>>>>>> 40885bf (Initial commit)
         # Fallback
         self.last_action = 'stop'
         self._change_state('analyzing')
@@ -2640,8 +2314,6 @@ class AIVideoProcessor:
         self.obstacle_map = []
         self.position = {'x': 0, 'y': 0, 'heading': 0}
         self.previous_frame = None
-<<<<<<< HEAD
-=======
         self.exploration_bias = 0
         self.stagnation_counter = 0
         self.last_positions.clear()
@@ -2651,7 +2323,6 @@ class AIVideoProcessor:
         self.scan_results = {'left': 100.0, 'right': 100.0}
         self.scan_step = 0
         self.auto_park_mode = False
->>>>>>> 40885bf (Initial commit)
         logger.info("🔄 AI Processor reset - starting in ANALYZING state")
 
 

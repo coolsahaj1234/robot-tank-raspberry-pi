@@ -49,10 +49,6 @@
 }
 
 @keyframes statusPulse {
-<<<<<<< HEAD
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
-=======
 
   0%,
   100% {
@@ -62,7 +58,6 @@
   50% {
     opacity: 0.6;
   }
->>>>>>> 40885bf (Initial commit)
 }
 
 .chat-messages {
@@ -99,10 +94,7 @@
     opacity: 0;
     transform: translateY(10px);
   }
-<<<<<<< HEAD
-=======
 
->>>>>>> 40885bf (Initial commit)
   to {
     opacity: 1;
     transform: translateY(0);
@@ -208,6 +200,9 @@
 }
 
 .chat-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   padding: 10px 12px;
   background: rgba(0, 0, 0, 0.2);
 }
@@ -252,14 +247,6 @@
   cursor: not-allowed;
   transform: none;
 }
-<<<<<<< HEAD
-=======
-
-.chat-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
 
 .action-btn.standby {
   background: rgba(139, 92, 246, 0.1);
@@ -291,4 +278,3 @@
     box-shadow: 0 0 20px rgba(139, 92, 246, 0.6);
   }
 }
->>>>>>> 40885bf (Initial commit)

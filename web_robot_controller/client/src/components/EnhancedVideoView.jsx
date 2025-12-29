@@ -1,10 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import RadarView from './RadarView'
-<<<<<<< HEAD
-import { Eye, AlertCircle, Target, ArrowUp, ArrowDown, ArrowLeft, ArrowRight } from 'lucide-react'
-=======
 import { Eye, AlertCircle, Target, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Compass, Activity, Brain } from 'lucide-react'
->>>>>>> 40885bf (Initial commit)
 import './EnhancedVideoView.css'
 
 /**
@@ -97,11 +93,7 @@ export default function EnhancedVideoView({
           ref={videoContainerRef}
           onClick={onClickNavigate ? handleVideoClick : undefined}
         >
-<<<<<<< HEAD
-          {/* Camera label */}
-=======
           {/* Camera label - Top Left */}
->>>>>>> 40885bf (Initial commit)
           <div className="video-label">
             <Eye size={14} />
             <span>{autonomousActive ? 'AI Autonomous' : 'AI Enhanced'}</span>
@@ -110,9 +102,6 @@ export default function EnhancedVideoView({
             )}
           </div>
 
-<<<<<<< HEAD
-          {/* Video frame - show AI processed frame only in autonomous mode */}
-=======
           {/* Detected Objects - Top Right */}
           {detectedObjects.length > 0 && (
             <div className="objects-indicator">
@@ -144,7 +133,6 @@ export default function EnhancedVideoView({
           )}
 
           {/* Main video area content remains same */}
->>>>>>> 40885bf (Initial commit)
           {aiError ? (
             <div className="video-error">
               <AlertCircle size={24} />
@@ -161,36 +149,6 @@ export default function EnhancedVideoView({
             </div>
           )}
 
-<<<<<<< HEAD
-          {/* Distance indicators */}
-          <div className="distance-overlay">
-            {/* Front distance bar */}
-            <div className={`distance-bar front ${getDistanceClass(frontDistance)}`}>
-              <span className="distance-label">FRONT</span>
-              <div className="distance-fill" style={{ width: `${Math.min(100, frontDistance)}%` }} />
-              <span className="distance-value">{Math.round(frontDistance)}cm</span>
-            </div>
-
-            {/* Back distance bar */}
-            <div className={`distance-bar back ${getDistanceClass(backDistance, true)}`}>
-              <span className="distance-label">BACK</span>
-              <div className="distance-fill" style={{ width: `${Math.min(100, backDistance)}%` }} />
-              <span className="distance-value">{Math.round(backDistance)}cm</span>
-            </div>
-          </div>
-
-          {/* Zone indicators - only show when autonomous mode is active */}
-          {autonomousActive && obstacleData && (
-            <div className="zone-overlay">
-              <div className={`zone-indicator left ${obstacleData.left_clear !== false ? 'clear' : 'blocked'}`}>
-                L {obstacleData.left_clear !== false ? '✓' : '✗'}
-              </div>
-              <div className={`zone-indicator center ${obstacleData.center_blocked !== true ? 'clear' : 'blocked'}`}>
-                C {obstacleData.center_blocked !== true ? '✓' : '✗'}
-              </div>
-              <div className={`zone-indicator right ${obstacleData.right_clear !== false ? 'clear' : 'blocked'}`}>
-                R {obstacleData.right_clear !== false ? '✓' : '✗'}
-=======
           {/* IMU & Gyro Telemetry - Bottom Left */}
           {sensorData?.imu && (
             <div className="imu-overlay">
@@ -231,7 +189,6 @@ export default function EnhancedVideoView({
               <div className={`action-badge ${navigationCommand.action}`}>
                 <Brain size={16} />
                 <span>{navigationCommand.action.toUpperCase().replace('_', ' ')}</span>
->>>>>>> 40885bf (Initial commit)
               </div>
             </div>
           )}
@@ -242,24 +199,14 @@ export default function EnhancedVideoView({
               <Target size={36} className="target-icon" />
               <span className="click-direction">
                 {clickTarget.relX < 0.33 ? 'LEFT' :
-<<<<<<< HEAD
-                 clickTarget.relX > 0.67 ? 'RIGHT' :
-                 clickTarget.relY < 0.4 ? 'FORWARD' :
-                 clickTarget.relY > 0.7 ? 'BACK' : 'GO'}
-=======
                   clickTarget.relX > 0.67 ? 'RIGHT' :
                     clickTarget.relY < 0.4 ? 'FORWARD' :
                       clickTarget.relY > 0.7 ? 'BACK' : 'GO'}
->>>>>>> 40885bf (Initial commit)
               </span>
             </div>
           )}
 
-<<<<<<< HEAD
-          {/* Click hints overlay - only in manual mode */}
-=======
           {/* Click hints overlay */}
->>>>>>> 40885bf (Initial commit)
           {showClickHints && onClickNavigate && (
             <div className="click-hints">
               <div className="hint-zone left"><ArrowLeft size={20} /></div>

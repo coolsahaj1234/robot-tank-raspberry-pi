@@ -22,15 +22,11 @@ export function useRobotConnection() {
   const [sensorData, setSensorData] = useState({
     distance: null,
     distanceBack: null,
-<<<<<<< HEAD
-    infrared: null
-=======
     infrared: null,
     imu: {
       accel: { x: 0, y: 0, z: 0 },
       gyro: { x: 0, y: 0, z: 0 }
     }
->>>>>>> 40885bf (Initial commit)
   })
 
   const wsRef = useRef(null)
@@ -150,21 +146,6 @@ export function useRobotConnection() {
             break
 
           case 'command_response':
-<<<<<<< HEAD
-            const response = data.data.trim()
-            if (response.startsWith('CMD_SONIC#')) {
-              const parts = response.split('#')
-              if (parts.length >= 2) {
-                const distanceFront = parseFloat(parts[1])
-                const distanceBack = parts.length >= 3 ? parseFloat(parts[2]) : null
-                setSensorData(prev => ({
-                  ...prev,
-                  distance: distanceFront,
-                  distanceBack: distanceBack
-                }))
-              }
-            }
-=======
             const messages = data.data.split('\n')
             messages.forEach(msg => {
               const response = msg.trim()
@@ -203,7 +184,6 @@ export function useRobotConnection() {
                 }
               }
             })
->>>>>>> 40885bf (Initial commit)
             break
 
           case 'error':

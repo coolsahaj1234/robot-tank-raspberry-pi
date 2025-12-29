@@ -1,15 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 
-<<<<<<< HEAD
-const AI_SERVICE_URL = 'http://localhost:5001'
-=======
 const getAiServiceUrl = () => {
   const host = window.location.hostname
   return `http://${host}:5001`
 }
 
 const AI_SERVICE_URL = getAiServiceUrl()
->>>>>>> 40885bf (Initial commit)
 
 /**
  * Hook for AI video processing with reactive navigation
@@ -18,11 +14,7 @@ const AI_SERVICE_URL = getAiServiceUrl()
  * - Navigation commands (speed, turn, LEDs)
  * - Radar data (position, path history, obstacles)
  */
-<<<<<<< HEAD
-export function useAIVideoProcessor(videoFrame, enabled, sensorData = null) {
-=======
 export function useAIVideoProcessor(videoFrame, enabled, sensorData = null, isSantaMode = false, isSantaStandby = false, isAutoParkMode = false) {
->>>>>>> 40885bf (Initial commit)
   const [processedFrame, setProcessedFrame] = useState(null)
   const [laneData, setLaneData] = useState(null)
   const [obstacleData, setObstacleData] = useState(null)
@@ -50,14 +42,10 @@ export function useAIVideoProcessor(videoFrame, enabled, sensorData = null, isSa
       const base64Data = frame.includes(',') ? frame.split(',')[1] : frame
 
       const requestBody = {
-<<<<<<< HEAD
-        frame: base64Data
-=======
         frame: base64Data,
         santa_mode: isSantaMode,
         santa_standby: isSantaStandby,
         auto_park_mode: isAutoParkMode
->>>>>>> 40885bf (Initial commit)
       }
 
       // Add front ultrasonic distance
@@ -128,17 +116,10 @@ export function useAIVideoProcessor(videoFrame, enabled, sensorData = null, isSa
       console.error('AI processing error:', err)
       setError(err.message)
     } finally {
-<<<<<<< HEAD
-      setProcessing(false)
-      processingRef.current = false
-    }
-  }, [sensorData])
-=======
       processingRef.current = false
       setProcessing(false)
     }
   }, [sensorData, isSantaMode, isSantaStandby, isAutoParkMode])
->>>>>>> 40885bf (Initial commit)
 
   // Process frames when enabled
   useEffect(() => {

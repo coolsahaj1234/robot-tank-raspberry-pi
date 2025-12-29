@@ -12,25 +12,17 @@ export function useAutonomousNavigation({
 }) {
   const lastActionRef = useRef(null)
   const commandIntervalRef = useRef(null)
-<<<<<<< HEAD
-=======
   const wasEnabledRef = useRef(false)
->>>>>>> 40885bf (Initial commit)
 
   // Motor power configuration - STRONG turns, CAREFUL movement
   const MOTOR_CONFIG = {
     FORWARD_SPEED: 45,      // Slower forward (safety)
     SLOW_FORWARD: 35,       // Very slow forward
     TURN_SPEED: 90,         // STRONG turn (90% power!)
-<<<<<<< HEAD
-    BACKUP_SPEED: 50,       // Backup speed
-    SCALE_FACTOR: 20        // Scale % to motor values
-=======
     GENTLE_TURN_SPEED: 50,  // Gentle turn for tracking (50% power)
     BACKUP_SPEED: 50,       // Backup speed
     SCALE_FACTOR: 20,       // Scale % to motor values
     MOTOR_COMPENSATION: 0.97 // Left motor runs at 97% of right motor (compensate for imbalance)
->>>>>>> 40885bf (Initial commit)
   }
 
   const executeMotorCommand = useCallback((leftSpeed, rightSpeed) => {
@@ -41,53 +33,8 @@ export function useAutonomousNavigation({
 
   const setLEDs = useCallback((action, dangerZone) => {
     // LED format: CMD_LED#mode#r#g#b#index
-<<<<<<< HEAD
     // Mode 1 = static, Mode 4 = breathing
 
-    if (action === 'backup') {
-      // RED FLASH for backup - warning!
-      onSendCommand('CMD_LED#1#255#0#0#0')
-      onSendCommand('CMD_LED#1#255#0#0#1')
-      onSendCommand('CMD_LED#1#255#0#0#2')
-      onSendCommand('CMD_LED#1#255#0#0#3')
-    } else if (dangerZone === 'danger') {
-      // Orange warning for danger
-      onSendCommand('CMD_LED#1#255#100#0#0')
-      onSendCommand('CMD_LED#1#255#100#0#1')
-      onSendCommand('CMD_LED#1#255#100#0#2')
-      onSendCommand('CMD_LED#1#255#100#0#3')
-    } else if (action === 'analyzing') {
-      // Blue pulsing while analyzing
-      onSendCommand('CMD_LED#4#0#100#255#0')
-      onSendCommand('CMD_LED#4#0#100#255#1')
-      onSendCommand('CMD_LED#4#0#100#255#2')
-      onSendCommand('CMD_LED#4#0#100#255#3')
-    } else if (action === 'turn_left') {
-      // Amber left side
-      onSendCommand('CMD_LED#1#255#200#0#0')
-      onSendCommand('CMD_LED#1#255#200#0#1')
-      onSendCommand('CMD_LED#1#0#50#50#2')
-      onSendCommand('CMD_LED#1#0#50#50#3')
-    } else if (action === 'turn_right') {
-      // Amber right side
-      onSendCommand('CMD_LED#1#0#50#50#0')
-      onSendCommand('CMD_LED#1#0#50#50#1')
-      onSendCommand('CMD_LED#1#255#200#0#2')
-      onSendCommand('CMD_LED#1#255#200#0#3')
-    } else if (action === 'forward' || action === 'slow_forward') {
-      // Green for forward (dimmer for slow)
-      const brightness = action === 'slow_forward' ? 150 : 255
-      onSendCommand(`CMD_LED#1#0#${brightness}#100#0`)
-      onSendCommand(`CMD_LED#1#0#${brightness}#100#1`)
-      onSendCommand(`CMD_LED#1#0#${brightness}#100#2`)
-      onSendCommand(`CMD_LED#1#0#${brightness}#100#3`)
-    } else {
-      // Dim cyan for stopped/idle
-      onSendCommand('CMD_LED#1#0#100#100#0')
-      onSendCommand('CMD_LED#1#0#100#100#1')
-      onSendCommand('CMD_LED#1#0#100#100#2')
-      onSendCommand('CMD_LED#1#0#100#100#3')
-=======
     if (action === 'backup') {
       for (let i = 0; i < 4; i++) onSendCommand(`CMD_LED#1#255#0#0#${i}`)
     } else if (dangerZone === 'danger') {
@@ -116,30 +63,16 @@ export function useAutonomousNavigation({
       for (let i = 0; i < 4; i++) onSendCommand(`CMD_LED#4#200#0#255#${i}`)
     } else {
       for (let i = 0; i < 4; i++) onSendCommand(`CMD_LED#1#0#100#100#${i}`)
->>>>>>> 40885bf (Initial commit)
     }
   }, [onSendCommand])
 
   useEffect(() => {
-<<<<<<< HEAD
-    if (!enabled || !navigationCommand) {
-=======
     if (!enabled) {
       // CRITICAL: Clear interval IMMEDIATELY
->>>>>>> 40885bf (Initial commit)
       if (commandIntervalRef.current) {
         clearInterval(commandIntervalRef.current)
         commandIntervalRef.current = null
       }
-<<<<<<< HEAD
-      if (enabled === false) {
-        onSendCommand('CMD_MOTOR#0#0')
-        // Turn off all LEDs
-        onSendCommand('CMD_LED#0#0#0#0#0')
-        onSendCommand('CMD_LED#0#0#0#0#1')
-        onSendCommand('CMD_LED#0#0#0#0#2')
-        onSendCommand('CMD_LED#0#0#0#0#3')
-=======
 
       // CRITICAL: Send MULTIPLE stop commands for redundancy
       if (wasEnabledRef.current) {
@@ -154,19 +87,15 @@ export function useAutonomousNavigation({
         for (let i = 0; i < 4; i++) onSendCommand(`CMD_LED#0#0#0#0#${i}`)
 
         wasEnabledRef.current = false
->>>>>>> 40885bf (Initial commit)
       }
       return
     }
 
-<<<<<<< HEAD
-=======
     if (!navigationCommand) return
 
     // We are now enabled and have a command
     wasEnabledRef.current = true
 
->>>>>>> 40885bf (Initial commit)
     // Get action from command
     const action = navigationCommand.action || 'stop'
     const dangerZone = navigationCommand.danger_zone || 'clear'
@@ -182,19 +111,6 @@ export function useAutonomousNavigation({
       let leftSpeed = 0
       let rightSpeed = 0
 
-<<<<<<< HEAD
-      switch (action) {
-        case 'forward':
-          // Move forward at normal speed
-          leftSpeed = MOTOR_CONFIG.FORWARD_SPEED
-          rightSpeed = MOTOR_CONFIG.FORWARD_SPEED
-          break
-
-        case 'slow_forward':
-          // Move forward slowly (caution)
-          leftSpeed = MOTOR_CONFIG.SLOW_FORWARD
-          rightSpeed = MOTOR_CONFIG.SLOW_FORWARD
-=======
       // Use dynamic speed from AI if provided, otherwise fallback to defaults
       const requestedSpeed = navigationCommand.speed || 0
       const turnSpeed = navigationCommand.speed || MOTOR_CONFIG.TURN_SPEED
@@ -212,31 +128,10 @@ export function useAutonomousNavigation({
           // Move forward slowly with motor compensation
           leftSpeed = (requestedSpeed || MOTOR_CONFIG.SLOW_FORWARD) * MOTOR_CONFIG.MOTOR_COMPENSATION
           rightSpeed = requestedSpeed || MOTOR_CONFIG.SLOW_FORWARD
->>>>>>> 40885bf (Initial commit)
           break
 
         case 'backup':
           // REVERSE both motors
-<<<<<<< HEAD
-          leftSpeed = -MOTOR_CONFIG.BACKUP_SPEED
-          rightSpeed = -MOTOR_CONFIG.BACKUP_SPEED
-          break
-
-        case 'turn_left':
-          // Strong left turn - pivot turn
-          // Left wheel reverse, right wheel forward
-          leftSpeed = -MOTOR_CONFIG.TURN_SPEED * 0.5
-          rightSpeed = MOTOR_CONFIG.TURN_SPEED
-          break
-
-        case 'turn_right':
-          // Strong right turn - pivot turn
-          leftSpeed = MOTOR_CONFIG.TURN_SPEED
-          rightSpeed = -MOTOR_CONFIG.TURN_SPEED * 0.5
-          break
-
-        case 'stop':
-=======
           leftSpeed = -backupSpeed
           rightSpeed = -backupSpeed
           break
@@ -285,7 +180,6 @@ export function useAutonomousNavigation({
 
         case 'stop':
         case 'stopped':
->>>>>>> 40885bf (Initial commit)
         case 'analyzing':
         default:
           // STOP - no movement
@@ -294,8 +188,6 @@ export function useAutonomousNavigation({
           break
       }
 
-<<<<<<< HEAD
-=======
       // CRITICAL SAFETY: Execute stop commands FIRST before any motor commands
       if (action === 'stop' || action === 'stopped' || action === 'analyzing') {
         onSendCommand('CMD_MOTOR#0#0')
@@ -303,7 +195,6 @@ export function useAutonomousNavigation({
         rightSpeed = 0
       }
 
->>>>>>> 40885bf (Initial commit)
       // Execute motor command
       executeMotorCommand(leftSpeed, rightSpeed)
 
@@ -323,13 +214,8 @@ export function useAutonomousNavigation({
       clearInterval(commandIntervalRef.current)
     }
 
-<<<<<<< HEAD
-    // Send commands continuously at 100ms interval
-    commandIntervalRef.current = setInterval(executeCommand, 100)
-=======
     // Send commands continuously at 50ms interval for responsive control
     commandIntervalRef.current = setInterval(executeCommand, 50)
->>>>>>> 40885bf (Initial commit)
 
     return () => {
       if (commandIntervalRef.current) {

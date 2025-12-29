@@ -9,12 +9,9 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from ai_processor import processor
 import logging
-<<<<<<< HEAD
-=======
 import cv2
 import os
 import time
->>>>>>> 40885bf (Initial commit)
 
 app = Flask(__name__)
 CORS(app)
@@ -67,22 +64,15 @@ def process_frame():
         data = request.json
         base64_frame = data.get('frame')
         ultrasonic_distance = data.get('ultrasonic_distance')
-<<<<<<< HEAD
-=======
         ultrasonic_distance_back = data.get('ultrasonic_distance_back')
         santa_mode = data.get('santa_mode', False)
         santa_standby = data.get('santa_standby', False)
         auto_park_mode = data.get('auto_park_mode', False)
         imu_data = data.get('imu_data')  # Get IMU data from client
->>>>>>> 40885bf (Initial commit)
 
         if not base64_frame:
             return jsonify({'error': 'No frame provided'}), 400
 
-<<<<<<< HEAD
-        # Process frame with reactive navigation
-        result = processor.process_frame(base64_frame, ultrasonic_distance)
-=======
         # Update processor mode
         processor.santa_mode_active = santa_mode
         processor.santa_standby = santa_standby
@@ -95,7 +85,6 @@ def process_frame():
             ultrasonic_distance_back,
             imu_data=imu_data
         )
->>>>>>> 40885bf (Initial commit)
 
         if result is None:
             return jsonify({'error': 'Failed to process frame'}), 500
@@ -107,8 +96,6 @@ def process_frame():
         return jsonify({'error': str(e)}), 500
 
 
-<<<<<<< HEAD
-=======
 @app.route('/capture_photo', methods=['POST'])
 def capture_photo():
     """
@@ -151,7 +138,6 @@ def capture_photo():
         return jsonify({'error': str(e)}), 500
 
 
->>>>>>> 40885bf (Initial commit)
 if __name__ == '__main__':
     print("=" * 50)
     print("  AI Video Processing Service - Reactive Navigation")
@@ -162,9 +148,6 @@ if __name__ == '__main__':
     print("    GET  /status       - Detailed status")
     print("    POST /reset        - Reset AI state")
     print("    POST /process_frame - Process video frame")
-<<<<<<< HEAD
-=======
     print("    POST /capture_photo - Manually capture photo")
->>>>>>> 40885bf (Initial commit)
     print("=" * 50)
     app.run(host='0.0.0.0', port=5001, debug=False)
