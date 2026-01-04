@@ -4,8 +4,6 @@ import './index.css';
 import App from './App';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(
-    <React.StrictMode>
-        <App />
-    </React.StrictMode>
-);
+// Note: StrictMode removed because streetscape.gl v1.0.13 is incompatible with
+// React 18's double-invocation of lifecycle methods
+root.render(<App />);

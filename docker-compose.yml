@@ -1,0 +1,81 @@
+version: '3.8'
+
+services:
+  # Web Robot Controller - Simple web interface for robot control
+  web-robot-controller:
+    build:
+      context: ./web_robot_controller
+      dockerfile: Dockerfile
+    container_name: web-robot-controller
+    ports:
+      - "8080:8080"  # Web interface
+      - "5001:5001"  # AI service
+    environment:
+      - NODE_ENV=production
+      - ROBOT_IP=${ROBOT_IP:-10.0.0.86}
+      - ROBOT_COMMAND_PORT=${ROBOT_COMMAND_PORT:-5003}
+      - ROBOT_VIDEO_PORT=${ROBOT_VIDEO_PORT:-8003}
+    networks:
+      - robot-network
+    restart: unless-stopped
+    mem_limit: 1800m
+    mem_reservation: 1200m
+    deploy:
+      resources:
+        limits:
+          memory: 1800M
+        reservations:
+          memory: 1200M
+
+  # AVS Robot Dashboard - Advanced 3D visualization dashboard
+  avs-robot-dashboard:
+    build:
+      context: ./avs_robot_dashboard
+      dockerfile: Dockerfile
+    container_name: avs-robot-dashboard
+    ports:
+      - "3000:3000"  # Frontend
+      - "8081:8081"  # Backend WebSocket
+    environment:
+      - NODE_ENV=production
+      - ROBOT_IP=${ROBOT_IP:-10.0.0.86}
+      - ROBOT_COMMAND_PORT=${ROBOT_COMMAND_PORT:-5003}
+      - ROBOT_VIDEO_PORT=${ROBOT_VIDEO_PORT:-8003}
+    networks:
+      - robot-network
+    restart: unless-stopped
+    mem_limit: 2000m
+    mem_reservation: 1400m
+    deploy:
+      resources:
+        limits:
+          memory: 2000M
+        reservations:
+          memory: 1400M
+
+networks:
+  robot-network:
+    driver: bridge
+
+# IMPORTANT NOTES FOR 4GB RAM SYSTEMS:
+# =====================================
+# Windows needs ~1.5-2GB RAM to run properly
+# This leaves only ~2-2.5GB for Docker Desktop
+#
+# Memory Allocation Strategy:
+# - Windows OS: ~1.5-2GB (system reserved)
+# - Docker Desktop: Set to 2-2.5GB max in Settings
+# - web-robot-controller: Up to 1.8GB (lighter option)
+# - avs-robot-dashboard: Up to 2GB (heavier option)
+#
+# CRITICAL: Run ONLY ONE service at a time on 4GB systems!
+#
+# To run a single service:
+#   docker-compose up web-robot-controller
+#   OR
+#   docker-compose up avs-robot-dashboard
+#
+# DO NOT run both services together on 4GB RAM!
+# Running both will likely cause system instability.
+#
+# Configure ROBOT_IP in .env file before running.

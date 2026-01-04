@@ -1,0 +1,43 @@
+# Node modules
+frontend/node_modules/
+
+# Python cache
+backend/__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Build outputs
+frontend/build/
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Documentation (keep only essential)
+*.md
+!README.md
+!QUICKSTART.md
+
+# Scripts not needed in container
+*.sh
+dashboard.sh
+start_dashboard.sh
+
+# Package lock (we'll use package.json only)
+package-lock.json

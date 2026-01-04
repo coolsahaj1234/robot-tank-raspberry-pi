@@ -1,0 +1,43 @@
+# Node modules
+node_modules/
+client/node_modules/
+
+# Python virtual environments
+ai_service/venv/
+ai_service/__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Build outputs
+client/dist/
+client/build/
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Documentation (keep only essential)
+*.md
+!README.md
+
+# Scripts not needed in container
+*.bat
+*.sh
+start.js
+stop.*
