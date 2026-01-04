@@ -14,11 +14,35 @@ from typing import Dict, Tuple, Optional, List, Any
 from collections import deque
 import logging
 from ultralytics import YOLO
+from depth_estimator import DepthProEstimator, FallbackDepthEstimator
 import torch
 # Fix for PyTorch 2.6+ security changes
 try:
     import ultralytics.nn.tasks
-    torch.serialization.add_safe_globals([ultralytics.nn.tasks.DetectionModel])
+    import ultralytics.nn.modules.block
+    import ultralytics.nn.modules.conv
+    import ultralytics.nn.modules.head
+    import torch.nn.modules.container
+    import torch.nn.modules.conv
+    import torch.nn.modules.activation
+    import torch.nn.modules.batchnorm
+    import torch.nn.modules.pooling
+    import torch.nn.modules.upsampling
+    
+    torch.serialization.add_safe_globals([
+        ultralytics.nn.tasks.DetectionModel,
+        ultralytics.nn.modules.block.C2f,
+        ultralytics.nn.modules.block.DFL,
+        ultralytics.nn.modules.conv.Conv,
+        ultralytics.nn.modules.conv.Concat,
+        ultralytics.nn.modules.head.Detect,
+        torch.nn.modules.container.Sequential,
+        torch.nn.modules.conv.Conv2d,
+        torch.nn.modules.activation.SiLU,
+        torch.nn.modules.batchnorm.BatchNorm2d,
+        torch.nn.modules.pooling.MaxPool2d,
+        torch.nn.modules.upsampling.Upsample
+    ])
 except Exception as e:
     logging.warning(f"Could not add safe globals: {e}")
 
@@ -95,15 +119,47 @@ class AIVideoProcessor:
         self.frame_count = 0
         self.frames_in_state = 0
 
-        # Advanced Object Detection (YOLOv8)
+        # Advanced Object Detection (YOLO) - Use lightweight model for real-time performance
         try:
-            # Use nano model for performance
-            self.model = YOLO('yolov8n.pt')
+            # For real-time performance, use smaller models
+            # yolov8n = fastest, good for real-time
+            # yolov8s = small, balanced
+            # yolov8m = medium, slower but more accurate
+            model_options = ['yolov8n.pt', 'yolov8s.pt', 'yolov8m.pt']
+            loaded_model = None
+
+            for model_name in model_options:
+                try:
+                    logger.info(f"🔧 Attempting to load {model_name}...")
+                    self.model = YOLO(model_name)
+                    loaded_model = model_name
+                    logger.info(f"✅ {model_name} Object Detection initialized")
+                    break
+                except Exception as e:
+                    logger.warning(f"⚠️ Could not load {model_name}: {e}")
+                    continue
+
+            if loaded_model is None:
+                raise Exception("No YOLO model could be loaded")
+
             self.yolo_enabled = True
-            logger.info("✅ YOLOv8 Object Detection initialized")
+
         except Exception as e:
-            logger.error(f"❌ Failed to load YOLOv8: {e}")
+            logger.error(f"❌ Failed to load YOLO: {e}")
             self.yolo_enabled = False
+
+        # Depth Estimation with Apple Depth Pro
+        try:
+            logger.info("🔧 Initializing Depth Pro estimator...")
+            self.depth_estimator = DepthProEstimator()
+            if not self.depth_estimator.enabled:
+                # Fallback to heuristic depth estimation
+                logger.info("📏 Using fallback heuristic depth estimation")
+                self.depth_estimator = FallbackDepthEstimator()
+        except Exception as e:
+            logger.warning(f"⚠️ Depth estimator initialization failed: {e}")
+            logger.info("📏 Using fallback heuristic depth estimation")
+            self.depth_estimator = FallbackDepthEstimator()
         # Stuck detection - VISUAL based
         self.movement_history = deque(maxlen=10)
         self.stuck_counter = 0
@@ -152,6 +208,13 @@ class AIVideoProcessor:
         # Object detection settings
         self.min_object_area = 500  # Minimum contour area to consider (now mostly for fallback)
         self.detected_objects = []  # Store detected objects for overlay
+
+        # Object tracking for temporal smoothing
+        self.tracked_objects = {}  # {track_id: {bbox, type, confidence, age, last_seen}}
+        self.next_track_id = 0
+        self.max_track_age = 10  # Keep track for 10 frames without detection
+        self.confidence_appear = 0.35  # Threshold for new object to appear
+        self.confidence_persist = 0.25  # Lower threshold for existing tracked objects
 
         # Capture settings
         self.capture_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'captures', 'santa')
@@ -305,8 +368,8 @@ class AIVideoProcessor:
 
     def detect_objects(self, image: np.ndarray) -> List[Dict]:
         """
-        Detect and classify objects in the image using YOLOv8 and contour analysis.
-        Returns list of detected objects with bounding boxes and classifications.
+        Detect and classify objects using YOLO + Depth Pro for accurate 3D positioning.
+        Returns list of detected objects with bounding boxes, classifications, and 3D positions.
         """
         if image is None:
             self.detected_objects = []
@@ -314,54 +377,114 @@ class AIVideoProcessor:
 
         height, width = image.shape[:2]
 
-        # --- STEP 1: YOLOv8 INFERENCE ---
-        # ONLY run YOLO in AI Auto mode (not Santa Mode) for performance
+        # Debug: Log image dimensions and save frame occasionally
+        if self.frame_count % 100 == 0:
+            logger.info(f"📐 Image shape: {width}x{height}, dtype={image.dtype}")
+            # Save debug frame to see what YOLO sees
+            try:
+                cv2.imwrite('/tmp/yolo_debug_frame.jpg', image)
+                logger.info(f"💾 Saved debug frame to /tmp/yolo_debug_frame.jpg")
+            except Exception as e:
+                logger.warning(f"Failed to save debug frame: {e}")
+
+        # --- STEP 1: DEPTH ESTIMATION (if available) ---
+        # Skip depth estimation - use only fallback heuristics for speed
+        # Depth Pro is too slow for real-time. Use heuristic estimation instead.
+        depth_map = None
+        focal_length = None
+        # Depth estimation disabled for performance
+        # if hasattr(self.depth_estimator, 'estimate_depth'):
+        #     depth_map, focal_length = self.depth_estimator.estimate_depth(image)
+
+        # --- STEP 2: YOLO OBJECT DETECTION ---
+        # Always run YOLO for visualization (except in Santa Mode)
         yolo_results = []
-        if self.yolo_enabled and not self.santa_mode_active:
-            # Use HIGH confidence threshold (0.6) to avoid false positives
-            results = self.model(image, stream=True, verbose=False, conf=0.6)
+        if not self.santa_mode_active:  # Always detect objects for AVS visualization
+            # Use higher confidence threshold for speed and quality
+            # Reduce max detections for better performance
+            results = self.model(
+                image,
+                stream=True,
+                verbose=False,
+                conf=0.4,       # Higher confidence = faster + fewer false positives
+                iou=0.45,       # NMS IoU threshold
+                max_det=15,     # Reduced from 30 for speed
+                agnostic_nms=False,  # Class-specific NMS
+                half=False      # Disable FP16 for stability
+            )
             for r in results:
                 boxes = r.boxes
                 for box in boxes:
                     # Get box coordinates, class, and confidence
-                    b = box.xyxy[0].tolist() 
+                    b = box.xyxy[0].tolist()
                     cls = int(box.cls[0])
                     conf = float(box.conf[0])
-                    
-                    # DOUBLE-CHECK: Only accept high-confidence detections
-                    if conf < 0.6:
+
+                    # Accept confidence >= 0.4 (matches YOLO conf setting)
+                    if conf < 0.4:
                         continue
                         
                     name = self.model.names[cls].upper()
-                    
+
                     x1, y1, x2, y2 = b
                     bw, bh = x2 - x1, y2 - y1
                     bcx, bcy = (x1 + x2) / 2, (y1 + y2) / 2
+
+                    # Debug logging for bbox
+                    import logging
+                    logger.info(f"🔍 YOLO detected '{name}' conf={conf:.2f}: x1={x1:.0f} y1={y1:.0f} x2={x2:.0f} y2={y2:.0f} (w={bw:.0f} h={bh:.0f})")
                     
                     # Determine position
                     pos = 'center'
                     if bcx < width // 3: pos = 'left'
                     elif bcx > 2 * width // 3: pos = 'right'
-                    
-                    # Distance estimate
-                    v_pos = bcy / height
-                    s_fact = (bw * bh) / (width * height)
-                    dist = 'far'
-                    if v_pos > 0.6 or s_fact > 0.1: dist = 'close'
-                    elif v_pos > 0.4 or s_fact > 0.05: dist = 'medium'
-                    
+
+                    bbox_data = [int(x1), int(y1), int(bw), int(bh)]
+
+                    # --- STEP 3: GET 3D POSITION FROM DEPTH ---
+                    position_3d = None
+                    if depth_map is not None:
+                        # Use Depth Pro for accurate 3D position
+                        position_3d = self.depth_estimator.get_object_depth_and_position(
+                            depth_map, bbox_data, focal_length
+                        )
+                    else:
+                        # Fallback to heuristic depth estimation
+                        position_3d = self.depth_estimator.estimate_depth_from_bbox(
+                            bbox_data, height, width
+                        )
+
+                    # Legacy distance estimate (for compatibility)
+                    if position_3d and position_3d['depth'] < 0.5:
+                        dist = 'close'
+                    elif position_3d and position_3d['depth'] < 1.5:
+                        dist = 'medium'
+                    else:
+                        dist = 'far'
+
+                    if self.frame_count % 30 == 0 and position_3d:
+                        logger.info(f"   → bbox: {bbox_data}, depth: {position_3d['depth']:.2f}m, lateral: {position_3d['lateral_offset']:.2f}m")
+
                     yolo_results.append({
                         'type': name,
                         'confidence': conf,
-                        'bbox': [int(x1), int(y1), int(bw), int(bh)],
+                        'bbox': bbox_data,
                         'center': [int(bcx), int(bcy)],
                         'position': pos,
                         'distance': dist,
+                        'position_3d': position_3d,  # NEW: Accurate 3D position
                         'color': (255, 255, 0) # Cyan for YOLO objects
                     })
 
-        # --- STEP 2: CUSTOM SANTA HAT & FALLBACK CONTOUR LOGIC ---
-        # (This handles things YOLO might miss, like the specific Santa Hat, or generic obstacles)
+        # Apply object tracking for temporal stability
+        tracked_results = self._track_objects(yolo_results)
+
+        # Return tracked detections (stable across frames)
+        self.detected_objects = tracked_results[:10]  # Top 10 tracked objects
+        return self.detected_objects
+
+        # --- DISABLED: CUSTOM SANTA HAT & FALLBACK CONTOUR LOGIC ---
+        # (Disabled to use pure computer vision only)
         detected = yolo_results # Start with YOLO findings
         
         # Pre-process for contours
@@ -470,6 +593,144 @@ class AIVideoProcessor:
         detected.sort(key=lambda x: x.get('area', 0), reverse=True)
         self.detected_objects = detected[:10] # Track more objects now that it's stable
         return self.detected_objects
+
+    def _track_objects(self, detections: List[Dict]) -> List[Dict]:
+        """
+        Track objects across frames for temporal stability.
+        Matches detections to existing tracks using IoU, applies smoothing,
+        and keeps tracks persistent for several frames.
+        """
+        current_frame = self.frame_count
+        matched_tracks = set()
+        updated_detections = []
+
+        # Match new detections to existing tracks
+        for detection in detections:
+            bbox = detection.get('bbox', [0, 0, 0, 0])
+            if len(bbox) < 4:
+                continue
+
+            conf = detection.get('confidence', 0.0)
+
+            # Find best matching track (by IoU)
+            best_track_id = None
+            best_iou = 0.3  # Minimum IoU threshold for matching
+
+            for track_id, track in self.tracked_objects.items():
+                if track_id in matched_tracks:
+                    continue  # Already matched
+
+                iou = self._calculate_iou(bbox, track['bbox'])
+                if iou > best_iou:
+                    best_iou = iou
+                    best_track_id = track_id
+
+            if best_track_id is not None:
+                # Update existing track with smoothing
+                track = self.tracked_objects[best_track_id]
+
+                # Smooth bounding box (0.7 old, 0.3 new)
+                old_bbox = track['bbox']
+                smoothed_bbox = [
+                    int(0.7 * old_bbox[i] + 0.3 * bbox[i]) for i in range(4)
+                ]
+
+                track['bbox'] = smoothed_bbox
+                track['confidence'] = max(track['confidence'], conf)  # Keep highest confidence
+                track['last_seen'] = current_frame
+                track['age'] = 0  # Reset age since detected
+                track['position_3d'] = detection.get('position_3d')  # Update 3D position
+                matched_tracks.add(best_track_id)
+
+                # Add to results with track ID
+                updated_detections.append({
+                    **detection,
+                    'bbox': smoothed_bbox,
+                    'track_id': best_track_id,
+                    'confidence': track['confidence']
+                })
+
+            elif conf >= self.confidence_appear:
+                # Create new track (only if confidence high enough)
+                track_id = self.next_track_id
+                self.next_track_id += 1
+
+                self.tracked_objects[track_id] = {
+                    'bbox': bbox,
+                    'type': detection.get('type', 'UNKNOWN'),
+                    'confidence': conf,
+                    'last_seen': current_frame,
+                    'age': 0,
+                    'position_3d': detection.get('position_3d')  # Store 3D position
+                }
+                matched_tracks.add(track_id)
+
+                updated_detections.append({
+                    **detection,
+                    'track_id': track_id
+                })
+
+        # Update unmatched tracks (age them, keep if young)
+        tracks_to_remove = []
+        for track_id, track in self.tracked_objects.items():
+            if track_id not in matched_tracks:
+                track['age'] += 1
+
+                # Keep showing object for a few frames even if not detected
+                if track['age'] <= self.max_track_age and track['confidence'] >= self.confidence_persist:
+                    # Add to results as persisted track
+                    updated_detections.append({
+                        'type': track['type'],
+                        'confidence': track['confidence'] * 0.9,  # Decay confidence
+                        'bbox': track['bbox'],
+                        'center': [track['bbox'][0] + track['bbox'][2]//2,
+                                  track['bbox'][1] + track['bbox'][3]//2],
+                        'position': 'center',
+                        'distance': 'medium',
+                        'color': (255, 255, 0),
+                        'track_id': track_id,
+                        'persisted': True,
+                        'position_3d': track.get('position_3d')  # Preserve 3D position
+                    })
+                else:
+                    # Too old, remove track
+                    tracks_to_remove.append(track_id)
+
+        # Clean up old tracks
+        for track_id in tracks_to_remove:
+            del self.tracked_objects[track_id]
+
+        return updated_detections
+
+    def _calculate_iou(self, bbox1, bbox2):
+        """Calculate Intersection over Union for two bounding boxes."""
+        x1, y1, w1, h1 = bbox1
+        x2, y2, w2, h2 = bbox2
+
+        # Convert to corner coordinates
+        x1_max, y1_max = x1 + w1, y1 + h1
+        x2_max, y2_max = x2 + w2, y2 + h2
+
+        # Calculate intersection
+        xi1 = max(x1, x2)
+        yi1 = max(y1, y2)
+        xi2 = min(x1_max, x2_max)
+        yi2 = min(y1_max, y2_max)
+
+        if xi2 <= xi1 or yi2 <= yi1:
+            return 0.0  # No intersection
+
+        intersection = (xi2 - xi1) * (yi2 - yi1)
+
+        # Calculate union
+        area1 = w1 * h1
+        area2 = w2 * h2
+        union = area1 + area2 - intersection
+
+        if union == 0:
+            return 0.0
+
+        return intersection / union
 
     def _classify_object(self, area, aspect_ratio, extent, solidity,
                          vertices, w, h, cy, img_height) -> Tuple[str, float, Tuple[int, int, int]]:
